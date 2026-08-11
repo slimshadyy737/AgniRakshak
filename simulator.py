@@ -53,6 +53,39 @@ NODES = [
     {"id": "NODE-04", "name": "West Watchtower", "offset_lat": -0.0015, "offset_lon": -0.0065, "altitude": 425}
 ]
 
+REGIONAL_NAMES = {
+    "JAIPUR": {
+        "NODE-01": "Nahargarh Fort Ridge",
+        "NODE-02": "Jaigarh Pine Slopes",
+        "NODE-03": "Amer Reserve Canopy",
+        "NODE-04": "Jhalana Forest Sector"
+    },
+    "CALIFORNIA": {
+        "NODE-01": "Yosemite Valley Station",
+        "NODE-02": "El Capitan Ridge Outpost",
+        "NODE-03": "Mariposa Grove Canopy",
+        "NODE-04": "Glacier Point Watchtower"
+    },
+    "AMAZON": {
+        "NODE-01": "Manaus Canopy Tower",
+        "NODE-02": "Tapajós River Station",
+        "NODE-03": "Rio Negro Sector Delta",
+        "NODE-04": "Xingu Primary Forest"
+    },
+    "AUSTRALIA": {
+        "NODE-01": "Blue Mountains Ridge",
+        "NODE-02": "Katoomba Eucalyptus Slope",
+        "NODE-03": "Hawkesbury River Valley",
+        "NODE-04": "Wolgan Bushland Watch"
+    },
+    "GREECE": {
+        "NODE-01": "Mount Parnitha Outpost",
+        "NODE-02": "Tatoi Pine Forest Ridge",
+        "NODE-03": "Penteli Canopy Sector",
+        "NODE-04": "Marathon Coastal Watch"
+    }
+}
+
 class TelemetrySimulator:
     def __init__(self):
         self.step_counter = 0
@@ -110,9 +143,12 @@ class TelemetrySimulator:
         else:
             base_temp, base_hum, base_co, base_smoke, wind_kmh, wind_deg, battery = 25.0, 55.0, 4.0, 300.0, 12.0, 90, 95.0
 
+        node_name_base = REGIONAL_NAMES.get(self.active_region, {}).get(node_id, node_info.get("name", f"Sector {node_id}"))
+        node_name = f"{region['flag']} {node_name_base}"
+
         return {
             "node_id": node_info["id"],
-            "node_name": f"{region['flag']} {node_info['name']}",
+            "node_name": node_name,
             "latitude": round(base_lat + random.uniform(-0.0001, 0.0001), 5),
             "longitude": round(base_lon + random.uniform(-0.0001, 0.0001), 5),
             "altitude": node_info["altitude"],
