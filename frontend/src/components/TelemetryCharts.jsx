@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import {
   ResponsiveContainer,
   LineChart,
@@ -18,7 +19,8 @@ export default function TelemetryCharts({ historyData, selectedNodeId, theme }) 
   const tooltipBorder = isDark ? '#334155' : '#CBD5E1';
 
   const handleDownloadCSV = () => {
-    window.open(`/api/telemetry/export-csv?node_id=${selectedNodeId}`, '_blank');
+    const baseUrl = axios.defaults.baseURL || '';
+    window.open(`${baseUrl}/api/telemetry/export-csv?node_id=${selectedNodeId}`, '_blank');
   };
 
   if (!historyData || historyData.length === 0) {

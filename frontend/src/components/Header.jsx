@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import { Flame, ShieldAlert, Sun, Moon, Sparkles, Volume2, VolumeX, Printer } from 'lucide-react';
 
 export default function Header({ systemStatus, theme, onToggleTheme, onOpenAIReport, isMuted, onToggleMute }) {
@@ -11,7 +12,8 @@ export default function Header({ systemStatus, theme, onToggleTheme, onOpenAIRep
   const badge = getBadgeStyle(systemStatus?.system_risk_level || 0);
 
   const handleExportDispatchHTML = () => {
-    window.open('/api/incidents/export-html', '_blank');
+    const baseUrl = axios.defaults.baseURL || '';
+    window.open(`${baseUrl}/api/incidents/export-html`, '_blank');
   };
 
   const isDark = theme === 'dark';
@@ -69,17 +71,15 @@ export default function Header({ systemStatus, theme, onToggleTheme, onOpenAIRep
               AgniRakshak
             </h1>
             <span style={{
-              background: isDark ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : '#2563EB',
-              color: '#FFFFFF',
-              fontSize: '0.68rem',
+              background: 'rgba(249, 115, 22, 0.15)',
+              color: '#F97316',
+              fontSize: '0.72rem',
               fontWeight: '800',
-              padding: '3px 10px',
+              padding: '3px 9px',
               borderRadius: '20px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.6px',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
+              border: '1px solid rgba(249, 115, 22, 0.3)'
             }}>
-              Enterprise MVP
+              v4.0 Edge AI
             </span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginTop: '2px', fontWeight: '500' }}>
@@ -140,15 +140,16 @@ export default function Header({ systemStatus, theme, onToggleTheme, onOpenAIRep
           background: badge.bg,
           color: badge.text,
           border: `1.5px solid ${badge.border}`,
-          padding: '8px 18px',
-          borderRadius: '30px',
+          padding: '8px 16px',
+          borderRadius: '12px',
           fontWeight: '800',
-          fontSize: '0.88rem',
+          fontSize: '0.82rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '8px',
+          letterSpacing: '0.4px'
         }}>
-          <ShieldAlert size={18} />
+          <ShieldAlert size={16} />
           {badge.label}
         </div>
 
@@ -156,40 +157,38 @@ export default function Header({ systemStatus, theme, onToggleTheme, onOpenAIRep
         <button
           onClick={onToggleMute}
           style={{
-            background: isMuted ? 'var(--bg-input)' : 'rgba(239, 68, 68, 0.15)',
-            border: `1px solid ${isMuted ? 'var(--bg-card-border)' : '#EF4444'}`,
-            color: isMuted ? 'var(--text-muted)' : '#EF4444',
-            width: '42px',
-            height: '42px',
+            background: isMuted ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-input)',
+            border: `1px solid ${isMuted ? '#EF4444' : 'var(--bg-card-border)'}`,
+            color: isMuted ? '#EF4444' : 'var(--text-main)',
+            padding: '9px',
             borderRadius: '12px',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
+            justifyContent: 'center'
           }}
-          title={isMuted ? 'Unmute Emergency Siren' : 'Mute Emergency Siren'}
+          title={isMuted ? 'Unmute Emergency Siren Audio' : 'Mute Emergency Siren Audio'}
         >
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
 
-        {/* Theme Toggle Button */}
+        {/* Theme Switcher Toggle */}
         <button
           onClick={onToggleTheme}
           style={{
             background: 'var(--bg-input)',
             border: '1px solid var(--bg-card-border)',
             color: 'var(--text-main)',
-            width: '42px',
-            height: '42px',
+            padding: '9px',
             borderRadius: '12px',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
+            justifyContent: 'center'
           }}
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          title="Toggle Light/Dark Theme"
         >
-          {theme === 'dark' ? <Sun size={20} color="#F59E0B" /> : <Moon size={20} color="#2563EB" />}
+          {isDark ? <Sun size={18} color="#F59E0B" /> : <Moon size={18} color="#6366F1" />}
         </button>
       </div>
     </header>
