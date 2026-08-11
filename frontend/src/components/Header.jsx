@@ -50,11 +50,13 @@ export default function Header({
   };
 
   const handleOpenDispatch = () => {
-    window.open('/api/incidents/export-html', '_blank');
+    const base = axios.defaults.baseURL || '';
+    window.open(`${base}/api/incidents/export-html`, '_blank');
   };
 
   const handleExportCSV = () => {
-    window.open('/api/telemetry/export-csv', '_blank');
+    const base = axios.defaults.baseURL || '';
+    window.open(`${base}/api/telemetry/export-csv`, '_blank');
   };
 
   const [imgError, setImgError] = useState(false);

@@ -5,11 +5,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://agnirakshak-backend.onrender.com/api/$1"
+      "destination": "https://agnirakshak-backend-kgsy.onrender.com/api/$1"
     },
     {
       "source": "/ws/(.*)",
-      "destination": "https://agnirakshak-backend.onrender.com/ws/$1"
+      "destination": "https://agnirakshak-backend-kgsy.onrender.com/ws/$1"
     },
     {
       "source": "/(.*)",

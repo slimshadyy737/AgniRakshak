@@ -32,7 +32,10 @@ export default function App() {
       const k = e.key;
       if (k === 'r' || k === 'R') setIsAIReportOpen(v => !v);
       if (k === 'm' || k === 'M') setIsMuted(v => !v);
-      if (k === 'd' || k === 'D') window.open('/api/incidents/export-html', '_blank');
+      if (k === 'd' || k === 'D') {
+        const base = axios.defaults.baseURL || '';
+        window.open(`${base}/api/incidents/export-html`, '_blank');
+      }
       if (k === '1') setActiveTab('tactical-map');
       if (k === '2') setActiveTab('sensor-network');
       if (k === '3') setActiveTab('analytics');
