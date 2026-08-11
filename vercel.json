@@ -1,26 +1,19 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "https://agnirakshak-backend.onrender.com/api/$1"
+      "source": "/api/(.*)",
+      "destination": "https://agnirakshak-backend.onrender.com/api/$1"
     },
     {
-      "src": "/ws/(.*)",
-      "dest": "https://agnirakshak-backend.onrender.com/ws/$1"
+      "source": "/ws/(.*)",
+      "destination": "https://agnirakshak-backend.onrender.com/ws/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
