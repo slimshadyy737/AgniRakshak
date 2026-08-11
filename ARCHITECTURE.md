@@ -22,6 +22,7 @@
   │  • Derivative Engine (dT/dt, dCO/dt)             │
   │  • Canadian Fire Weather Index (FWI Math)        │
   │  • Google Gemma 3n LLM Briefing Generator        │
+  │  • Multi-Channel Alert & Analytics Engine        │
   └────────────────────────┬─────────────────────────┘
                            │ WebSockets & REST API
                            ▼
@@ -29,7 +30,7 @@
   │       React 18 Geospatial Dashboard (5173)       │
   │  • Leaflet Fast Tile Renderer (<100ms)          │
   │  • Recharts Telemetry Streams & CSV Exporter    │
-  │  • Printable HTML/PDF Emergency Dispatch Sheet   │
+  │  • Multi-Tab Gemma 3n Briefing & Dispatch Sheet  │
   └──────────────────────────────────────────────────┘
 ```
 
@@ -59,7 +60,7 @@ $$VPD = SVP - AVP \quad \left[\text{kPa}\right]$$
 ## 3. Edge-AI Classification Model
 
 AgniRakshak uses a trained **Scikit-Learn Multi-Output Ensemble Classifier** combining:
-1. **Random Forest Classifier**: Evaluates multi-variate non-linear sensor relationships.
+1. **Random Forest Classifier**: Evaluates multi-variate non-linear sensor relationships across 100 estimators.
 2. **Derivative Threshold Heuristics**: Overrides static baselines when rapid rate-of-change spikes ($\frac{dT}{dt} > 0.5$, $\frac{dCO}{dt} > 0.8$) are detected.
 
 ---
@@ -77,4 +78,5 @@ The Gemma 3n engine receives combined ground telemetry, derivative trends, and N
 
 ## 5. Network Optimization & Low-Latency Rendering
 - **Decoupled API Fetching**: Satellite FIRMS queries are cached and decoupled from 2-second telemetry polling to ensure <100ms Leaflet map rendering.
+- **Dynamic Leaflet Remounting**: Map instances automatically adjust tiles and center focus smoothly upon region switches across 5 global preset locations.
 - **CartoDB Subdomain Mirroring**: Uses subdomain arrays (`a, b, c, d`) for parallel HTTP/2 tile fetching.
