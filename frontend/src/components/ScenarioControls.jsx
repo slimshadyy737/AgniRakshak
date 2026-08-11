@@ -1,71 +1,106 @@
 import React from 'react';
 import { Play, Flame, Sun, Wind, Trees } from 'lucide-react';
 
-export default function ScenarioControls({ currentScenario, onSelectScenario, onStepSimulation }) {
-  const scenarios = [
-    { id: 'NORMAL', label: 'Normal Forest', icon: Trees, color: '#10B981', desc: 'Ambient micro-climate (~24°C, 60% humidity)' },
-    { id: 'HOT_DRY', label: 'Hot & Dry Weather', icon: Sun, color: '#F59E0B', desc: 'Extreme drought: Temp rising, humidity < 20%' },
-    { id: 'SMOLDERING', label: 'Smoldering Fire', icon: Wind, color: '#F97316', desc: 'CO elevation +4.5 ppm/min before visible flames' },
-    { id: 'ACTIVE_FIRE', label: 'Active Wildfire', icon: Flame, color: '#EF4444', desc: 'Critical emergency: Temp > 50°C, toxic CO & smoke' },
-  ];
+const SCENARIOS = [
+  {
+    id: 'NORMAL',
+    label: 'Normal Forest',
+    icon: Trees,
+    color: '#15803D',
+    accentBg: '#F0FDF4',
+    accentBorder: '#BBF7D0',
+    desc: 'Ambient micro-climate (~24 °C, 60% humidity)',
+  },
+  {
+    id: 'HOT_DRY',
+    label: 'Hot & Dry Weather',
+    icon: Sun,
+    color: '#B45309',
+    accentBg: '#FFFBEB',
+    accentBorder: '#FDE68A',
+    desc: 'Extreme drought: temp rising, humidity < 20%',
+  },
+  {
+    id: 'SMOLDERING',
+    label: 'Smoldering Fire',
+    icon: Wind,
+    color: '#C2410C',
+    accentBg: '#FFF7ED',
+    accentBorder: '#FFEDD5',
+    desc: 'CO elevation +4.5 ppm/min before visible flames',
+  },
+  {
+    id: 'ACTIVE_FIRE',
+    label: 'Active Wildfire',
+    icon: Flame,
+    color: '#B91C1C',
+    accentBg: '#FEF2F2',
+    accentBorder: '#FECACA',
+    desc: 'Critical: Temp > 50 °C, toxic CO & smoke',
+  },
+];
 
+export default function ScenarioControls({ currentScenario, onSelectScenario, onStepSimulation }) {
   return (
-    <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--text-heading)' }}>
-          🎛️ Interactive Scenario Simulation Engine
-        </h3>
+    <div className="card" style={{ padding: '20px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F1923', margin: 0 }}>
+            Scenario Simulation Engine
+          </h3>
+          <p style={{ fontSize: '0.76rem', color: '#7A8FA6', marginTop: 2 }}>
+            Select a fire scenario to inject into the sensor mesh
+          </p>
+        </div>
         <button
           onClick={onStepSimulation}
-          style={{
-            background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '8px 18px',
-            borderRadius: '10px',
-            fontWeight: '600',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-            transition: 'transform 0.15s ease'
-          }}
+          className="btn btn-secondary"
+          style={{ padding: '7px 14px', fontSize: '0.82rem', gap: 6 }}
         >
-          <Play size={14} />
-          Step Next Clock Tick
+          <Play size={13} />
+          Step Tick
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
-        {scenarios.map((sc) => {
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+        {SCENARIOS.map((sc) => {
           const Icon = sc.icon;
           const isActive = currentScenario === sc.id;
-
           return (
             <div
               key={sc.id}
               onClick={() => onSelectScenario(sc.id)}
               style={{
-                background: isActive ? `${sc.color}15` : 'var(--bg-input)',
-                border: `2px solid ${isActive ? sc.color : 'var(--bg-card-border)'}`,
-                borderRadius: '12px',
-                padding: '14px',
+                background: isActive ? sc.accentBg : '#FAFBFC',
+                border: `1.5px solid ${isActive ? sc.accentBorder : '#E2E6ED'}`,
+                borderRadius: 10,
+                padding: '12px 14px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: isActive ? `0 4px 20px ${sc.color}25` : 'none'
+                transition: 'all 0.15s ease',
+                outline: isActive ? `2px solid ${sc.color}` : '2px solid transparent',
+                outlineOffset: 1,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <div style={{ background: `${sc.color}20`, padding: '6px', borderRadius: '8px' }}>
-                  <Icon size={18} color={sc.color} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 8,
+                  background: isActive ? sc.accentBorder : '#F0F2F5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon size={16} color={isActive ? sc.color : '#7A8FA6'} />
                 </div>
-                <span style={{ fontWeight: '700', fontSize: '0.92rem', color: isActive ? sc.color : 'var(--text-heading)' }}>
+                <span style={{
+                  fontSize: '0.85rem', fontWeight: 700,
+                  color: isActive ? sc.color : '#3D4F63',
+                }}>
                   {sc.label}
                 </span>
               </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: '1.3' }}>{sc.desc}</p>
+              <p style={{ fontSize: '0.75rem', color: '#7A8FA6', lineHeight: 1.4, margin: 0 }}>
+                {sc.desc}
+              </p>
             </div>
           );
         })}

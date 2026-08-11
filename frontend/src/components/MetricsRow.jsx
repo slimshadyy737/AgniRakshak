@@ -1,120 +1,109 @@
 import React from 'react';
-import { Shield, Thermometer, Wind, Cpu, TrendingUp, Zap } from 'lucide-react';
+import { Thermometer, Wind, Activity, Cpu } from 'lucide-react';
 
 export default function MetricsRow({ systemStatus, focusNode }) {
-  const getRiskColor = (level) => {
-    if (level === 2) return '#EF4444';
-    if (level === 1) return '#F59E0B';
-    return '#10B981';
-  };
+  const riskLevel = systemStatus?.system_risk_level || 0;
 
-  const dT_dt = focusNode?.derivatives?.dT_dt || 0.0;
-  const dCO_dt = focusNode?.derivatives?.dCO_dt || 0.0;
+  const risk = riskLevel === 2
+    ? { label: 'Critical Fire Risk', badgeClass: 'badge badge-critical', valueColor: '#B91C1C' }
+    : riskLevel === 1
+    ? { label: 'Elevated Warning',   badgeClass: 'badge badge-warning',  valueColor: '#92400E' }
+    : { label: 'System Normal',      badgeClass: 'badge badge-normal',   valueColor: '#15803D' };
+
+  const dT  = focusNode?.derivatives?.dT_dt ?? 0;
+  const dCO = focusNode?.derivatives?.dCO_dt ?? 0;
+
+  const metrics = [
+    {
+      label: 'Network Risk Status',
+      icon: <Activity size={18} color={riskLevel === 2 ? '#B91C1C' : riskLevel === 1 ? '#B45309' : '#15803D'} />,
+      value: systemStatus?.system_risk_label || 'NORMAL',
+      valueColor: risk.valueColor,
+      badge: <span className={risk.badgeClass}>{risk.label}</span>,
+      sub: <>Scenario: <strong>{systemStatus?.current_scenario || 'NORMAL'}</strong></>,
+    },
+    {
+      label: 'Temperature & Rate',
+      icon: <Thermometer size={18} color="#EA580C" />,
+      value: focusNode?.temperature != null ? `${focusNode.temperature} °C` : '— °C',
+      valueColor: '#0F1923',
+      badge: (
+        <span className={`badge ${dT >= 0 ? 'badge-critical' : 'badge-normal'}`}
+          style={{ fontSize: '0.72rem' }}>
+          {dT >= 0 ? '+' : ''}{dT.toFixed(2)} °C/min
+        </span>
+      ),
+      sub: <>Node: <strong>{focusNode?.node_name || 'NODE-01'}</strong></>,
+    },
+    {
+      label: 'Carbon Monoxide (CO)',
+      icon: <Wind size={18} color="#B45309" />,
+      value: focusNode?.co_ppm != null ? `${focusNode.co_ppm} ppm` : '— ppm',
+      valueColor: '#0F1923',
+      badge: (
+        <span className={`badge ${dCO >= 0 ? 'badge-critical' : 'badge-normal'}`}
+          style={{ fontSize: '0.72rem' }}>
+          {dCO >= 0 ? '+' : ''}{dCO.toFixed(2)} ppm/min
+        </span>
+      ),
+      sub: <>Smoke ADC: <strong>{focusNode?.smoke_raw || '—'}</strong></>,
+    },
+    {
+      label: 'AI Confidence Score',
+      icon: <Cpu size={18} color="#0369A1" />,
+      value: focusNode?.confidence != null
+        ? `${(focusNode.confidence * 100).toFixed(1)}%`
+        : '100.0%',
+      valueColor: '#0369A1',
+      badge: <span className="badge" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '0.72rem' }}>RANDOM FOREST</span>,
+      sub: <>Classifier: <strong>RF + Derivative Rules</strong></>,
+    },
+  ];
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
       gap: '16px',
-      marginBottom: '20px'
     }}>
-      {/* Metric 1: System Risk Status */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-            OVERALL SYSTEM RISK
-          </span>
+      {metrics.map((m) => (
+        <div key={m.label} className="stat-card">
+          {/* Header row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#F4F6F9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {m.icon}
+              </div>
+              <span className="section-label">{m.label}</span>
+            </div>
+          </div>
+
+          {/* Value */}
           <div style={{
-            background: `${getRiskColor(systemStatus?.system_risk_level)}20`,
-            padding: '8px',
-            borderRadius: '10px'
+            fontSize: '1.9rem', fontWeight: 800,
+            color: m.valueColor,
+            fontFamily: 'JetBrains Mono, monospace',
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+            marginBottom: 8,
           }}>
-            <Shield size={18} color={getRiskColor(systemStatus?.system_risk_level)} />
+            {m.value}
           </div>
-        </div>
-        <div style={{
-          color: getRiskColor(systemStatus?.system_risk_level),
-          fontSize: '1.65rem',
-          fontWeight: '800',
-          marginTop: '8px'
-        }}>
-          {systemStatus?.system_risk_label || 'NORMAL'}
-        </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Zap size={14} color="#F97316" />
-          Active Scenario: <strong style={{ color: 'var(--text-main)' }}>{systemStatus?.current_scenario || 'NORMAL'}</strong>
-        </div>
-      </div>
 
-      {/* Metric 2: Temperature & Derivative */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-            TEMPERATURE & dT/dt
-          </span>
-          <div style={{ background: 'rgba(249, 115, 22, 0.15)', padding: '8px', borderRadius: '10px' }}>
-            <Thermometer size={18} color="#F97316" />
+          {/* Badge + sub */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {m.badge}
           </div>
+          <p style={{ fontSize: '0.78rem', color: '#7A8FA6', marginTop: 6 }}>
+            {m.sub}
+          </p>
         </div>
-        <div style={{ color: 'var(--text-main)', fontSize: '1.55rem', fontWeight: '800', marginTop: '8px' }}>
-          {focusNode?.temperature || 25.0} °C
-          <span style={{
-            fontSize: '0.88rem',
-            marginLeft: '8px',
-            fontWeight: '700',
-            color: dT_dt > 1.0 ? '#EF4444' : '#10B981'
-          }}>
-            ({dT_dt >= 0 ? `+${dT_dt.toFixed(2)}` : dT_dt.toFixed(2)} °C/min)
-          </span>
-        </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '6px' }}>
-          Target Node: <strong style={{ color: 'var(--text-main)' }}>{focusNode?.node_id || 'NODE-01'}</strong>
-        </div>
-      </div>
-
-      {/* Metric 3: Carbon Monoxide */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-            CARBON MONOXIDE (CO)
-          </span>
-          <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '8px', borderRadius: '10px' }}>
-            <Wind size={18} color="#F59E0B" />
-          </div>
-        </div>
-        <div style={{ color: 'var(--text-main)', fontSize: '1.55rem', fontWeight: '800', marginTop: '8px' }}>
-          {focusNode?.co_ppm || 4.0} ppm
-          <span style={{
-            fontSize: '0.88rem',
-            marginLeft: '8px',
-            fontWeight: '700',
-            color: dCO_dt > 2.0 ? '#EF4444' : '#10B981'
-          }}>
-            ({dCO_dt >= 0 ? `+${dCO_dt.toFixed(2)}` : dCO_dt.toFixed(2)} ppm/min)
-          </span>
-        </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '6px' }}>
-          Smoke Raw ADC: <strong style={{ color: 'var(--text-main)' }}>{focusNode?.smoke_raw || 300}</strong>
-        </div>
-      </div>
-
-      {/* Metric 4: AI Model Confidence */}
-      <div className="glass-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-            AI CONFIDENCE SCORE
-          </span>
-          <div style={{ background: 'rgba(56, 189, 248, 0.15)', padding: '8px', borderRadius: '10px' }}>
-            <Cpu size={18} color="#0EA5E9" />
-          </div>
-        </div>
-        <div style={{ color: '#0EA5E9', fontSize: '1.65rem', fontWeight: '800', marginTop: '8px' }}>
-          {((focusNode?.confidence || 0.95) * 100).toFixed(1)}%
-        </div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '6px' }}>
-          Classifier: <strong style={{ color: 'var(--text-main)' }}>Random Forest + Rules</strong>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

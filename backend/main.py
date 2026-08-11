@@ -99,6 +99,15 @@ class FireAnalysisRequest(BaseModel):
     longitude: float
     node_id: Optional[str] = "NODE-01"
 
+class BroadcastAlertPayload(BaseModel):
+    sector_id: Optional[str] = "ALL"
+    channels: Optional[List[str]] = ["SMS", "Telegram", "LoRa Radio"]
+    message_custom: Optional[str] = None
+
+class WindVectorPayload(BaseModel):
+    wind_speed_kmh: float
+    wind_direction_deg: float
+
 def process_node_data(node_id: str, scenario: str, step: int):
     node_info = next((n for n in active_nodes if n["id"] == node_id), None)
     if not node_info:
@@ -653,6 +662,68 @@ def step_simulation():
     for node in active_nodes:
         process_node_data(node["id"], state["current_scenario"], state["simulation_step"])
     return {"status": "stepped", "step": state["simulation_step"]}
+
+@app.post("/api/alerts/broadcast")
+def broadcast_alert(payload: BroadcastAlertPayload):
+    status = get_system_status()
+    region_info = REGIONS[state["active_region"]]
+    
+    msg = payload.message_custom or f"🚨 CRITICAL WILDFIRE ALERT [{region_info['name']}]: Risk Level {status['system_risk_label']}. Peak Temp: {status['peak_temperature']}°C, Peak CO: {status['peak_co_ppm']}ppm. Emergency response units dispatched."
+    
+    return {
+        "status": "broadcast_sent",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "channels_notified": payload.channels,
+        "region": region_info["name"],
+        "message": msg,
+        "recipients_count": 24
+    }
+
+@app.get("/api/analytics/summary")
+def get_analytics_summary():
+    nodes = get_nodes()
+    if not nodes:
+        return {}
+    
+    avg_temp = sum(n["temperature"] for n in nodes) / len(nodes)
+    avg_co = sum(n["co_ppm"] for n in nodes) / len(nodes)
+    avg_battery = sum(n["battery_level"] for n in nodes) / len(nodes)
+    avg_rssi = sum(n["rssi_dbm"] for n in nodes) / len(nodes)
+    high_risk_count = sum(1 for n in nodes if n["risk_level"] == 2)
+    warning_count = sum(1 for n in nodes if n["risk_level"] == 1)
+    
+    return {
+        "active_region": REGIONS[state["active_region"]]["name"],
+        "total_nodes": len(nodes),
+        "high_risk_nodes": high_risk_count,
+        "warning_nodes": warning_count,
+        "average_temperature_c": round(avg_temp, 2),
+        "average_co_ppm": round(avg_co, 2),
+        "average_battery_percent": round(avg_battery, 1),
+        "average_rssi_dbm": round(avg_rssi, 1),
+        "mesh_health_score": max(0, 100 - (high_risk_count * 25) - (warning_count * 10)),
+        "simulation_step": state["simulation_step"]
+    }
+
+@app.post("/api/nodes/wind-vector")
+def update_wind_vector(payload: WindVectorPayload):
+    for node in active_nodes:
+        if node["id"] not in state["manual_overrides"]:
+            state["manual_overrides"][node["id"]] = {}
+        history = state["node_history"].get(node["id"], [])
+        last = history[-1] if history else {}
+        
+        state["manual_overrides"][node["id"]].update({
+            "temperature": last.get("temperature", 25.0),
+            "humidity": last.get("humidity", 55.0),
+            "co_ppm": last.get("co_ppm", 5.0),
+            "smoke_raw": last.get("smoke_raw", 300.0),
+            "wind_speed_kmh": payload.wind_speed_kmh,
+            "wind_direction_deg": payload.wind_direction_deg,
+        })
+        process_node_data(node["id"], state["current_scenario"], state["simulation_step"])
+        
+    return {"status": "wind_vector_updated", "wind_speed_kmh": payload.wind_speed_kmh, "wind_direction_deg": payload.wind_direction_deg}
 
 @app.websocket("/ws/telemetry")
 async def websocket_endpoint(websocket: WebSocket):

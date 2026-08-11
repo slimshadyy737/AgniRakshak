@@ -1,85 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Sparkles, Copy, Check, Printer, ShieldAlert, Cpu, Activity, Compass, Flame } from 'lucide-react';
+import { X, Sparkles, Copy, Check, Printer, ShieldAlert, Cpu, Activity, Flame, Brain, AlertTriangle } from 'lucide-react';
 
-// Helper function to parse inline bold **text** and `code` tags into React elements
-const renderFormattedText = (text) => {
+// Inline markdown renderer
+const renderInline = (text) => {
   if (!text) return null;
-
-  // Split by ** delimiters to identify bold text
-  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
-
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index} style={{ color: 'var(--text-heading)', fontWeight: '800' }}>{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={index} style={{ background: 'var(--bg-input)', padding: '2px 6px', borderRadius: '4px', color: '#0EA5E9', fontSize: '0.88rem' }}>{part.slice(1, -1)}</code>;
-    }
+  return text.split(/(\*\*.*?\*\*|`.*?`)/g).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={i} style={{ color: '#0F1923' }}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('`') && part.endsWith('`'))
+      return <code key={i} style={{ background: '#F4F6F9', padding: '1px 5px', borderRadius: 4, color: '#EA580C', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85em' }}>{part.slice(1, -1)}</code>;
     return part;
   });
 };
 
-// Formatted Markdown Component handling Headers, Lists, Dividers, and Inline Bold Text
 const FormattedMarkdown = ({ text }) => {
   if (!text) return null;
-
-  const lines = text.split('\n');
   return (
-    <div style={{ lineHeight: '1.7' }}>
-      {lines.map((line, idx) => {
-        if (line.startsWith('### ')) {
-          return (
-            <h3 key={idx} style={{
-              color: '#F97316',
-              fontSize: '1.25rem',
-              fontWeight: '800',
-              marginTop: '16px',
-              marginBottom: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              {renderFormattedText(line.replace('### ', ''))}
-            </h3>
-          );
-        }
-        if (line.startsWith('#### ')) {
-          return (
-            <h4 key={idx} style={{
-              color: '#38BDF8',
-              fontSize: '1.08rem',
-              fontWeight: '700',
-              marginTop: '16px',
-              marginBottom: '8px'
-            }}>
-              {renderFormattedText(line.replace('#### ', ''))}
-            </h4>
-          );
-        }
-        if (line.startsWith('- ')) {
-          return (
-            <li key={idx} style={{ marginLeft: '20px', marginBottom: '6px', color: 'var(--text-main)' }}>
-              {renderFormattedText(line.replace('- ', ''))}
-            </li>
-          );
-        }
-        if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ') || line.startsWith('4. ')) {
-          return (
-            <div key={idx} style={{ marginLeft: '12px', marginBottom: '8px', fontWeight: '500' }}>
-              {renderFormattedText(line)}
-            </div>
-          );
-        }
-        if (line.startsWith('---')) {
-          return <hr key={idx} style={{ borderColor: 'var(--bg-card-border)', margin: '16px 0', opacity: 0.6 }} />;
-        }
-        if (line.trim() === '') return <br key={idx} />;
-        return <p key={idx} style={{ margin: '6px 0', color: 'var(--text-main)' }}>{renderFormattedText(line)}</p>;
+    <div style={{ lineHeight: 1.75, color: '#3D4F63', fontSize: '0.9rem' }}>
+      {text.split('\n').map((line, i) => {
+        if (line.startsWith('### '))
+          return <h3 key={i} style={{ color: '#EA580C', fontSize: '1.05rem', fontWeight: 800, marginTop: 20, marginBottom: 8 }}>{renderInline(line.slice(4))}</h3>;
+        if (line.startsWith('#### '))
+          return <h4 key={i} style={{ color: '#0369A1', fontSize: '0.95rem', fontWeight: 700, marginTop: 14, marginBottom: 6 }}>{renderInline(line.slice(5))}</h4>;
+        if (line.startsWith('- '))
+          return <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
+            <span style={{ color: '#EA580C', flexShrink: 0, marginTop: 1 }}>•</span>
+            <span>{renderInline(line.slice(2))}</span>
+          </div>;
+        if (/^\d+\.\s/.test(line))
+          return <div key={i} style={{ marginLeft: 4, marginBottom: 6 }}>{renderInline(line)}</div>;
+        if (line.startsWith('---'))
+          return <hr key={i} style={{ border: 'none', borderTop: '1px solid #E2E6ED', margin: '16px 0' }} />;
+        if (line.trim() === '') return <br key={i} />;
+        return <p key={i} style={{ margin: '4px 0' }}>{renderInline(line)}</p>;
       })}
     </div>
   );
 };
+
+const TABS = [
+  { id: 'executive', label: 'Executive Briefing',   icon: <Brain size={14} /> },
+  { id: 'telemetry', label: 'Telemetry Audit',      icon: <Activity size={14} /> },
+  { id: 'tactical',  label: 'Tactical Action Plan', icon: <AlertTriangle size={14} /> },
+  { id: 'raw',       label: 'Raw JSON Log',          icon: <Cpu size={14} /> },
+];
 
 export default function AIReportModal({ isOpen, onClose, selectedNode }) {
   const [reportData, setReportData] = useState(null);
@@ -88,22 +53,21 @@ export default function AIReportModal({ isOpen, onClose, selectedNode }) {
   const [activeTab, setActiveTab] = useState('executive');
 
   useEffect(() => {
-    if (isOpen && selectedNode) {
-      fetchAIReport();
-    }
-  }, [isOpen, selectedNode]);
+    if (isOpen && selectedNode) fetchReport();
+  }, [isOpen, selectedNode?.node_id]);
 
-  const fetchAIReport = async () => {
+  const fetchReport = async () => {
     setLoading(true);
+    setReportData(null);
     try {
       const res = await axios.post('/api/analyze-fire-map', {
-        latitude: selectedNode.latitude,
+        latitude:  selectedNode.latitude,
         longitude: selectedNode.longitude,
-        node_id: selectedNode.node_id
+        node_id:   selectedNode.node_id,
       });
       setReportData(res.data);
     } catch (e) {
-      console.error('Error fetching Gemma AI report:', e);
+      console.error('AI Report error:', e);
     } finally {
       setLoading(false);
     }
@@ -117,287 +81,263 @@ export default function AIReportModal({ isOpen, onClose, selectedNode }) {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   if (!isOpen) return null;
 
+  const node = selectedNode;
+  const riskLevel = node?.risk_level ?? 0;
+  const riskColor = riskLevel === 2 ? '#B91C1C' : riskLevel === 1 ? '#92400E' : '#15803D';
+  const riskBg    = riskLevel === 2 ? '#FEF2F2' : riskLevel === 1 ? '#FFFBEB' : '#F0FDF4';
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      background: 'rgba(11, 17, 32, 0.85)',
-      backdropFilter: 'blur(12px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '20px'
-    }}>
-      <div className="glass-card" style={{
-        width: '100%',
-        maxWidth: '880px',
+    <div
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(15, 25, 35, 0.6)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 9999,
+        padding: 20,
+      }}
+    >
+      <div style={{
+        width: '100%', maxWidth: 900,
         maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '20px',
-        border: '1.5px solid var(--bg-card-border)',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.65)',
-        overflow: 'hidden'
+        background: '#FFFFFF',
+        border: '1px solid #E2E6ED',
+        borderRadius: 16,
+        boxShadow: '0 20px 60px rgba(15,25,35,0.18)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'tabFadeIn 0.2s ease',
       }}>
+
         {/* Modal Header */}
         <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--bg-card-border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'var(--bg-input)'
+          padding: '16px 20px',
+          borderBottom: '1px solid #F0F2F5',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: '#FAFBFC',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
-              background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-              padding: '10px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)'
+              width: 42, height: 42, borderRadius: 12,
+              background: 'linear-gradient(135deg, #1D4ED8, #0369A1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 3px 12px rgba(29,78,216,0.3)',
             }}>
-              <Sparkles size={22} color="#FFFFFF" />
+              <Sparkles size={20} color="#fff" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-heading)', margin: 0 }}>
-                AgniRakshak Gemma 3n AI Crisis Intelligence Briefing
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F1923', margin: 0 }}>
+                AgniRakshak AI Intelligence Briefing
               </h3>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Google Gemma 3n Architecture with Offline Cache Fallback & FWI Analytics
-              </span>
+              <p style={{ fontSize: '0.74rem', color: '#7A8FA6', margin: 0 }}>
+                Gemma 3n · FWI Analytics · Offline Cache Fallback · {node?.node_id}
+              </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={handleCopy}
-              style={{
-                background: copied ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-card-border)',
-                border: `1px solid ${copied ? '#10B981' : 'transparent'}`,
-                color: copied ? '#10B981' : 'var(--text-main)',
-                padding: '7px 14px',
-                borderRadius: '10px',
-                fontSize: '0.8rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy Text'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={handleCopy} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? 'Copied!' : 'Copy'}
             </button>
-
-            <button
-              onClick={handlePrint}
-              style={{
-                background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '7px 14px',
-                borderRadius: '10px',
-                fontSize: '0.8rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}
-            >
-              <Printer size={14} />
-              Print / Save PDF
+            <button onClick={() => window.print()} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+              <Printer size={13} />
+              Print / PDF
             </button>
-
             <button
               onClick={onClose}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                padding: '4px'
+                background: 'transparent', border: 'none',
+                color: '#7A8FA6', cursor: 'pointer',
+                display: 'flex', alignItems: 'center',
+                padding: 6, borderRadius: 6,
               }}
             >
-              <X size={22} />
+              <X size={20} />
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Bar */}
         <div style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '12px 24px',
-          background: 'var(--bg-card)',
-          borderBottom: '1px solid var(--bg-card-border)'
+          display: 'flex', alignItems: 'center', gap: 2,
+          padding: '0 20px',
+          borderBottom: '1px solid #F0F2F5',
+          background: '#FFFFFF',
         }}>
-          <button
-            onClick={() => setActiveTab('executive')}
-            style={{
-              background: activeTab === 'executive' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'transparent',
-              color: activeTab === 'executive' ? '#FFFFFF' : 'var(--text-muted)',
-              border: 'none',
-              padding: '7px 18px',
-              borderRadius: '20px',
-              fontSize: '0.82rem',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            📋 Executive Briefing
-          </button>
-
-          <button
-            onClick={() => setActiveTab('telemetry')}
-            style={{
-              background: activeTab === 'telemetry' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'transparent',
-              color: activeTab === 'telemetry' ? '#FFFFFF' : 'var(--text-muted)',
-              border: 'none',
-              padding: '7px 18px',
-              borderRadius: '20px',
-              fontSize: '0.82rem',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            📡 Telemetry & FWI Audit
-          </button>
-
-          <button
-            onClick={() => setActiveTab('tactical')}
-            style={{
-              background: activeTab === 'tactical' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'transparent',
-              color: activeTab === 'tactical' ? '#FFFFFF' : 'var(--text-muted)',
-              border: 'none',
-              padding: '7px 18px',
-              borderRadius: '20px',
-              fontSize: '0.82rem',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            🚒 Tactical Action Plan
-          </button>
-
-          <button
-            onClick={() => setActiveTab('raw')}
-            style={{
-              background: activeTab === 'raw' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'transparent',
-              color: activeTab === 'raw' ? '#FFFFFF' : 'var(--text-muted)',
-              border: 'none',
-              padding: '7px 18px',
-              borderRadius: '20px',
-              fontSize: '0.82rem',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            ⚙️ Raw JSON Log
-          </button>
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '10px 14px',
+                  fontSize: '0.83rem', fontWeight: isActive ? 700 : 500,
+                  color: isActive ? '#1D4ED8' : '#7A8FA6',
+                  background: 'transparent', border: 'none',
+                  borderBottom: isActive ? '2px solid #1D4ED8' : '2px solid transparent',
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                  marginBottom: -1, whiteSpace: 'nowrap',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ opacity: isActive ? 1 : 0.6 }}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        {/* Body */}
+        <div style={{ padding: '22px', overflowY: 'auto', flex: 1 }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <Sparkles size={36} color="#3B82F6" style={{ animation: 'spin 2s linear infinite' }} />
-              <p style={{ marginTop: '14px', fontWeight: '600', color: 'var(--text-muted)' }}>
-                Synthesizing Gemma 3n AI Environmental Risk Briefing...
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                border: '3px solid #BFDBFE',
+                borderTopColor: '#1D4ED8',
+                animation: 'radarSpin 0.9s linear infinite',
+              }} />
+              <p style={{ color: '#7A8FA6', fontWeight: 600, fontSize: '0.9rem' }}>
+                Synthesizing Gemma 3n AI Risk Briefing...
               </p>
             </div>
           ) : reportData ? (
             <>
+              {/* Executive Briefing */}
               {activeTab === 'executive' && (
-                <div>
-                  <FormattedMarkdown text={reportData.analysis} />
-                </div>
+                <FormattedMarkdown text={reportData.analysis} />
               )}
 
-              {activeTab === 'telemetry' && selectedNode && (
+              {/* Telemetry Audit */}
+              {activeTab === 'telemetry' && node && (
                 <div>
-                  <h4 style={{ color: 'var(--text-heading)', marginBottom: '14px', fontSize: '1.1rem' }}>
-                    Sensor Telemetry Audit — {selectedNode.node_name} ({selectedNode.node_id})
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>TEMPERATURE & DERIVATIVE</span>
-                      <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#F97316', marginTop: '4px' }}>
-                        {selectedNode.temperature} °C ({selectedNode.derivatives?.dT_dt >= 0 ? `+${selectedNode.derivatives?.dT_dt.toFixed(2)}` : selectedNode.derivatives?.dT_dt.toFixed(2)} °C/min)
-                      </div>
-                    </div>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '6px 14px', borderRadius: 8,
+                    background: riskBg, color: riskColor,
+                    border: `1px solid ${riskColor}30`,
+                    fontSize: '0.82rem', fontWeight: 700, marginBottom: 18,
+                  }}>
+                    <ShieldAlert size={14} />
+                    {node.risk_label} — {node.node_name} ({node.node_id})
+                  </div>
 
-                    <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>CARBON MONOXIDE & DERIVATIVE</span>
-                      <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#F59E0B', marginTop: '4px' }}>
-                        {selectedNode.co_ppm} ppm ({selectedNode.derivatives?.dCO_dt >= 0 ? `+${selectedNode.derivatives?.dCO_dt.toFixed(2)}` : selectedNode.derivatives?.dCO_dt.toFixed(2)} ppm/min)
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+                    {[
+                      { label: 'Temperature', value: `${node.temperature} °C`, sub: `Rate: ${node.derivatives?.dT_dt >= 0 ? '+' : ''}${node.derivatives?.dT_dt?.toFixed(2) ?? '0.00'} °C/min`, color: '#EA580C' },
+                      { label: 'Carbon Monoxide', value: `${node.co_ppm} ppm`, sub: `Rate: ${node.derivatives?.dCO_dt >= 0 ? '+' : ''}${node.derivatives?.dCO_dt?.toFixed(2) ?? '0.00'} ppm/min`, color: '#D97706' },
+                      { label: 'FWI Danger Rating', value: node.fwi_analytics?.danger_category ?? 'N/A', sub: `ISI: ${node.fwi_analytics?.initial_spread_index ?? '—'}`, color: riskColor },
+                      { label: 'Rate of Spread', value: `${node.fwi_analytics?.rate_of_spread_m_min ?? '—'} m/min`, sub: 'Propagation velocity', color: '#B91C1C' },
+                      { label: 'Humidity', value: `${node.humidity ?? '—'} %`, sub: 'Relative humidity', color: '#0369A1' },
+                      { label: 'Wind Speed', value: `${node.wind_speed_kmh ?? '—'} km/h`, sub: `Direction: ${node.wind_direction_deg ?? '—'}°`, color: '#7C3AED' },
+                    ].map(({ label, value, sub, color }) => (
+                      <div key={label} style={{
+                        background: '#F4F6F9',
+                        border: '1px solid #E2E6ED',
+                        borderRadius: 10, padding: '14px 16px',
+                      }}>
+                        <p className="section-label" style={{ marginBottom: 6 }}>{label}</p>
+                        <div style={{
+                          fontSize: '1.3rem', fontWeight: 800, color,
+                          fontFamily: 'JetBrains Mono, monospace',
+                          letterSpacing: '-0.02em', marginBottom: 4,
+                        }}>
+                          {value}
+                        </div>
+                        <p style={{ fontSize: '0.74rem', color: '#7A8FA6', margin: 0 }}>{sub}</p>
                       </div>
-                    </div>
-
-                    <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>FIRE WEATHER INDEX (FWI)</span>
-                      <div style={{ fontSize: '1.45rem', fontWeight: '800', color: selectedNode.fwi_analytics?.color || '#EF4444', marginTop: '4px' }}>
-                        {selectedNode.fwi_analytics?.danger_category || 'HIGH DANGER'}
-                      </div>
-                    </div>
-
-                    <div style={{ background: 'var(--bg-input)', padding: '16px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>RATE OF SPREAD (ROS)</span>
-                      <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#EF4444', marginTop: '4px' }}>
-                        {selectedNode.fwi_analytics?.rate_of_spread_m_min || 2.4} m/min
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {activeTab === 'tactical' && selectedNode && (
+              {/* Tactical Action Plan */}
+              {activeTab === 'tactical' && node && (
                 <div>
-                  <h4 style={{ color: '#EF4444', marginBottom: '14px', fontSize: '1.1rem' }}>
-                    🚒 Emergency Response Directives — Sector {selectedNode.node_id}
-                  </h4>
-                  <ul style={{ lineHeight: '1.9', fontSize: '0.94rem' }}>
-                    <li><strong>Perimeter Isolation:</strong> Enforce 1.5 km downwind safety perimeter from coordinates <code>{selectedNode.latitude.toFixed(4)}° N, {selectedNode.longitude.toFixed(4)}° E</code>.</li>
-                    <li><strong>Aerial Drone Vectoring:</strong> Deploy UAV infrared thermal sweep along the western ridge.</li>
-                    <li><strong>Chemical Retardant Drop:</strong> Target dry brush fuel beds exhibiting Vapor Pressure Deficit &gt; 1.8 kPa.</li>
-                    <li><strong>Responder Safety:</strong> SCBA respirators mandatory due to CO concentration ({selectedNode.co_ppm} ppm).</li>
-                  </ul>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: '#FEF2F2', border: '1px solid #FECACA',
+                    borderRadius: 10, padding: '12px 16px', marginBottom: 20,
+                  }}>
+                    <Flame size={18} color="#B91C1C" />
+                    <div>
+                      <p style={{ fontWeight: 700, color: '#B91C1C', margin: 0, fontSize: '0.9rem' }}>
+                        Emergency Response Directives — Sector {node.node_id}
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#7A8FA6', margin: 0 }}>
+                        {node.latitude?.toFixed(4)}° N, {node.longitude?.toFixed(4)}° E
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {[
+                      { num: '01', title: 'Perimeter Isolation', detail: `Enforce 1.5 km downwind safety perimeter from coordinates ${node.latitude?.toFixed(4)}° N, ${node.longitude?.toFixed(4)}° E. Evacuate civilian zones.` },
+                      { num: '02', title: 'Aerial Drone Vectoring', detail: 'Deploy UAV infrared thermal sweep along the western ridge to map active fire perimeter.' },
+                      { num: '03', title: 'Chemical Retardant Drop', detail: `Target dry brush fuel beds exhibiting Vapor Pressure Deficit > 1.8 kPa. Rate of Spread: ${node.fwi_analytics?.rate_of_spread_m_min ?? '—'} m/min.` },
+                      { num: '04', title: 'Responder Safety Protocol', detail: `SCBA respirators mandatory. Current CO concentration: ${node.co_ppm} ppm. Maintain 300m upwind distance.` },
+                      { num: '05', title: 'Sensor Mesh Monitoring', detail: 'Continue live telemetry polling. Alert threshold: Temp > 45°C or CO > 80 ppm triggers evacuation.' },
+                    ].map(({ num, title, detail }) => (
+                      <div key={num} style={{
+                        display: 'flex', gap: 14,
+                        background: '#FAFBFC',
+                        border: '1px solid #E2E6ED',
+                        borderRadius: 10, padding: '14px 16px',
+                      }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: 8,
+                          background: '#FFF7ED', border: '1px solid #FFEDD5',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.72rem', fontWeight: 800, color: '#EA580C',
+                          flexShrink: 0,
+                        }}>
+                          {num}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, color: '#0F1923', margin: '0 0 4px', fontSize: '0.9rem' }}>{title}</p>
+                          <p style={{ fontSize: '0.83rem', color: '#3D4F63', margin: 0, lineHeight: 1.5 }}>{detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* Raw JSON */}
               {activeTab === 'raw' && (
                 <pre style={{
-                  background: 'var(--bg-input)',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  fontSize: '0.82rem',
-                  color: '#38BDF8',
+                  background: '#0F172A',
+                  color: '#7DD3FC',
+                  padding: '18px',
+                  borderRadius: 10,
+                  fontSize: '0.78rem',
                   overflowX: 'auto',
-                  border: '1px solid var(--bg-card-border)'
+                  fontFamily: 'JetBrains Mono, monospace',
+                  lineHeight: 1.7,
+                  margin: 0,
                 }}>
                   {JSON.stringify(reportData, null, 2)}
                 </pre>
               )}
             </>
           ) : (
-            <p style={{ color: 'var(--text-muted)' }}>No report data available.</p>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#7A8FA6' }}>
+              <Brain size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+              <p style={{ fontWeight: 600 }}>No report generated yet.</p>
+            </div>
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes radarSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+      `}</style>
     </div>
   );
 }

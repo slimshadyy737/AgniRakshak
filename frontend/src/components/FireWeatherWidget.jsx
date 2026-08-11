@@ -1,88 +1,109 @@
 import React from 'react';
-import { Flame, Compass, Droplets, Gauge } from 'lucide-react';
+import { Flame, Droplets, Gauge, Compass } from 'lucide-react';
 
 export default function FireWeatherWidget({ focusNode }) {
-  if (!focusNode || !focusNode.fwi_analytics) return null;
+  const fwi = focusNode?.fwi_analytics || {
+    danger_category: 'LOW DANGER',
+    danger_color: '#15803D',
+    vpd_kpa: 1.45,
+    rate_of_spread_m_min: 2.1,
+    initial_spread_index: 1.5,
+  };
 
-  const fwi = focusNode.fwi_analytics;
-  const windSpeed = focusNode.wind_speed_kmh || 12.0;
-  const windDeg = focusNode.wind_direction_deg || 90;
+  const windSpeed = focusNode?.wind_speed_kmh ?? 12.0;
+  const windDir   = focusNode?.wind_direction_deg ?? 90;
+
+  const items = [
+    {
+      icon: <Flame size={16} color={fwi.danger_color || '#15803D'} />,
+      label: 'FWI Danger Rating',
+      value: fwi.danger_category,
+      valueColor: fwi.danger_color || '#15803D',
+      sub: `ISI: ${fwi.initial_spread_index}`,
+      mono: false,
+    },
+    {
+      icon: <Droplets size={16} color="#0369A1" />,
+      label: 'Vapor Pressure Deficit',
+      value: `${fwi.vpd_kpa ?? 1.45} kPa`,
+      valueColor: '#0F1923',
+      sub: fwi.vpd_kpa > 2.5 ? '⚠️ High drying potential' : 'Normal moisture balance',
+      mono: true,
+    },
+    {
+      icon: <Gauge size={16} color="#B91C1C" />,
+      label: 'Rate of Spread (ROS)',
+      value: `${fwi.rate_of_spread_m_min ?? 2.1} m/min`,
+      valueColor: '#B91C1C',
+      sub: 'Estimated propagation velocity',
+      mono: true,
+    },
+    {
+      icon: <Compass size={16} color="#B45309" />,
+      label: 'Wind Vector',
+      value: `${windSpeed} km/h`,
+      valueColor: '#0F1923',
+      sub: `Heading: ${windDir}°`,
+      mono: true,
+      extra: (
+        <span style={{
+          display: 'inline-block',
+          transform: `rotate(${windDir}deg)`,
+          transition: 'transform 0.5s ease',
+          fontSize: '1.1rem',
+          lineHeight: 1,
+        }}>➡️</span>
+      ),
+    },
+  ];
 
   return (
-    <div className="glass-card" style={{ marginBottom: '20px' }}>
-      <h3 style={{
-        fontSize: '1.05rem',
-        fontWeight: '700',
-        color: 'var(--text-heading)',
-        marginBottom: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        <Gauge size={18} color="#F97316" />
-        Fire Weather Index (FWI) & Rate of Spread Analytics
-      </h3>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-        {/* FWI Danger Category */}
-        <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.5px' }}>FWI DANGER RATING</span>
-          <div style={{ color: fwi.color, fontWeight: '800', fontSize: '1.15rem', marginTop: '2px' }}>
-            {fwi.danger_category}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
-            Initial Spread Index: <strong>{fwi.isi}</strong>
-          </div>
+    <div className="card" style={{ padding: '20px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: '#FFF7ED',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Flame size={16} color="#EA580C" />
         </div>
-
-        {/* Vapor Pressure Deficit */}
-        <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>
-            <Droplets size={14} color="#0EA5E9" />
-            VAPOR PRESSURE DEFICIT (VPD)
-          </div>
-          <div style={{ color: 'var(--text-main)', fontWeight: '800', fontSize: '1.25rem', marginTop: '2px' }}>
-            {fwi.vpd_kpa} kPa
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
-            {fwi.vpd_kpa > 2.0 ? '🚨 Critical fuel drying' : 'Normal moisture balance'}
-          </div>
+        <div>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F1923', margin: 0 }}>
+            Fire Weather Index (FWI) & Rate of Spread
+          </h3>
+          <p style={{ fontSize: '0.74rem', color: '#7A8FA6', margin: 0 }}>
+            Canadian FWI System analytics from sensor mesh
+          </p>
         </div>
+      </div>
 
-        {/* Estimated Rate of Spread */}
-        <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>
-            <Flame size={14} color="#EF4444" />
-            RATE OF SPREAD (ROS)
-          </div>
-          <div style={{ color: '#EF4444', fontWeight: '800', fontSize: '1.25rem', marginTop: '2px' }}>
-            {fwi.rate_of_spread_m_min} m/min
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
-            Estimated propagation velocity
-          </div>
-        </div>
-
-        {/* Wind Vector */}
-        <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--bg-card-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '700' }}>
-            <Compass size={14} color="#F59E0B" />
-            WIND VECTOR
-          </div>
-          <div style={{ color: 'var(--text-main)', fontWeight: '800', fontSize: '1.25rem', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>{windSpeed} km/h</span>
-            <div style={{
-              transform: `rotate(${windDeg}deg)`,
-              display: 'inline-block',
-              transition: 'transform 0.5s ease'
-            }}>
-              ⬆️
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+        {items.map((item) => (
+          <div key={item.label} style={{
+            background: '#F4F6F9',
+            border: '1px solid #E2E6ED',
+            borderRadius: 10,
+            padding: '14px 16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              {item.icon}
+              <span className="section-label">{item.label}</span>
             </div>
+            <div style={{
+              fontSize: '1.3rem', fontWeight: 800,
+              color: item.valueColor,
+              fontFamily: item.mono ? 'JetBrains Mono, monospace' : 'Inter, sans-serif',
+              letterSpacing: item.mono ? '-0.02em' : '-0.01em',
+              display: 'flex', alignItems: 'center', gap: 8,
+              marginBottom: 4,
+            }}>
+              {item.value}
+              {item.extra}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#7A8FA6', margin: 0 }}>{item.sub}</p>
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px' }}>
-            Heading: <strong>{windDeg}°</strong>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

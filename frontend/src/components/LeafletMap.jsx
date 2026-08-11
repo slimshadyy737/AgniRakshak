@@ -1,264 +1,265 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Satellite, PlusCircle } from 'lucide-react';
+import { MapPin, Satellite, PlusCircle, Layers } from 'lucide-react';
 import axios from 'axios';
 
-// Leaflet Recenter Helper
-function ChangeView({ center }) {
+// Fly-to helper — fires whenever center changes
+function ChangeView({ center, zoom }) {
   const map = useMap();
+  const prevCenter = useRef(null);
+
   useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.flyTo(center, 14, { duration: 1.2, animate: true });
+    if (!center || !center[0] || !center[1]) return;
+    const key = `${center[0].toFixed(3)}_${center[1].toFixed(3)}`;
+    if (prevCenter.current !== key) {
+      prevCenter.current = key;
+      map.flyTo(center, zoom, { duration: 1.4, animate: true });
     }
   }, [center[0], center[1]]);
+
   return null;
 }
 
-// Leaflet Map Click Handler Sub-Component
 function MapClickHandler({ onMapClick }) {
-  useMapEvents({
-    click(e) {
-      onMapClick(e.latlng.lat, e.latlng.lng);
-    }
-  });
+  useMapEvents({ click: (e) => onMapClick(e.latlng.lat, e.latlng.lng) });
   return null;
 }
 
-export default function LeafletMap({ nodes, selectedNodeId, onSelectNode, onDeployNode, theme }) {
-  const [showFirmsSatellites, setShowFirmsSatellites] = useState(true);
+export default function LeafletMap({ nodes, selectedNodeId, onSelectNode, onDeployNode }) {
+  const [showSatellites, setShowSatellites] = useState(true);
   const [firmsFires, setFirmsFires] = useState([]);
   const [clickCoords, setClickCoords] = useState(null);
-  const lastFetchedRegionRef = useRef('');
+  const lastFetchedRegionKey = useRef('');
 
-  // Compute map center from first node coordinates or default
-  const centerLat = (nodes && nodes.length > 0) ? nodes[0].latitude : 26.8430;
-  const centerLon = (nodes && nodes.length > 0) ? nodes[0].longitude : 75.5655;
+  // Derive center from nodes
+  const centerLat = nodes?.length > 0 ? nodes[0].latitude  : 26.8430;
+  const centerLon = nodes?.length > 0 ? nodes[0].longitude : 75.5655;
   const center = [centerLat, centerLon];
 
-  // Fetch FIRMS Satellite Data only when region changes or every 60s (Decoupled from 2s telemetry polling)
+  // Unique key forces MapContainer remount when region changes (fixes tile not reloading)
+  const mapKey = `${centerLat.toFixed(3)}_${centerLon.toFixed(3)}`;
+
+  // Fetch NASA FIRMS only when region changes
   useEffect(() => {
-    const regionKey = `${centerLat.toFixed(2)}_${centerLon.toFixed(2)}`;
-    if (lastFetchedRegionRef.current !== regionKey) {
-      lastFetchedRegionRef.current = regionKey;
-      fetchFirmsData(centerLat, centerLon);
-    }
-  }, [centerLat, centerLon]);
+    if (lastFetchedRegionKey.current === mapKey) return;
+    lastFetchedRegionKey.current = mapKey;
+    axios.get(`/api/firms/active-fires?lat=${centerLat}&lon=${centerLon}`)
+      .then(res => setFirmsFires(res.data.active_fires || []))
+      .catch(() => setFirmsFires([]));
+  }, [mapKey]);
 
-  const fetchFirmsData = async (lat, lon) => {
-    try {
-      const res = await axios.get(`/api/firms/active-fires?lat=${lat}&lon=${lon}`);
-      setFirmsFires(res.data.active_fires || []);
-    } catch (err) {
-      console.error('Error fetching NASA FIRMS satellite data:', err);
-    }
-  };
-
-  const handleMapClick = (lat, lng) => {
-    setClickCoords({ lat, lng });
-  };
+  const handleMapClick = (lat, lng) => setClickCoords({ lat, lng });
 
   const handleConfirmDeploy = async () => {
     if (!clickCoords) return;
-    const name = prompt('Enter Sector Name for new Mesh Node:', `Sector ${nodes.length + 1}`);
+    const name = prompt('Enter Sector Name for new Mesh Node:', `Sector ${(nodes?.length || 0) + 1}`);
     if (name) {
       try {
-        await axios.post('/api/nodes/deploy', {
-          name: name,
-          latitude: clickCoords.lat,
-          longitude: clickCoords.lng
-        });
-        if (onDeployNode) onDeployNode();
+        await axios.post('/api/nodes/deploy', { name, latitude: clickCoords.lat, longitude: clickCoords.lng });
+        onDeployNode?.();
         setClickCoords(null);
-      } catch (e) {
-        console.error('Error deploying node:', e);
-      }
+      } catch (e) { console.error(e); }
     }
   };
 
-  const tileUrl = theme === 'light'
-    ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const getColor = (riskLevel) =>
+    riskLevel === 2 ? '#DC2626' : riskLevel === 1 ? '#D97706' : '#16A34A';
 
-  const getColor = (riskLevel) => {
-    if (riskLevel === 2) return '#EF4444';
-    if (riskLevel === 1) return '#F59E0B';
-    return '#10B981';
-  };
-
-  // Build mesh lines between adjacent nodes
-  const meshLines = [];
-  if (nodes && nodes.length > 1) {
-    for (let i = 0; i < nodes.length; i++) {
-      const nextIdx = (i + 1) % nodes.length;
-      meshLines.push([
-        [nodes[i].latitude, nodes[i].longitude],
-        [nodes[nextIdx].latitude, nodes[nextIdx].longitude]
-      ]);
-    }
-  }
+  // Mesh lines
+  const meshLines = (nodes?.length > 1)
+    ? nodes.map((n, i) => [[n.latitude, n.longitude], [nodes[(i + 1) % nodes.length].latitude, nodes[(i + 1) % nodes.length].longitude]])
+    : [];
 
   return (
-    <div className="glass-card" style={{ height: '440px', padding: '18px', position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 style={{
-          fontSize: '1.05rem',
-          fontWeight: '700',
-          color: 'var(--text-heading)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <MapPin size={18} color="#F97316" />
-          Geospatial Mesh Network Map (Click Map to Deploy IoT Node)
-        </h3>
+    <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      {/* Header bar */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '14px 18px',
+        borderBottom: '1px solid #F0F2F5',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 7,
+            background: '#FFF7ED',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MapPin size={15} color="#EA580C" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F1923', margin: 0 }}>
+              Geospatial Mesh Network
+            </h3>
+            <p style={{ fontSize: '0.7rem', color: '#7A8FA6', margin: 0 }}>
+              Click map to deploy new IoT node
+            </p>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {clickCoords && (
             <button
               onClick={handleConfirmDeploy}
-              style={{
-                background: 'linear-gradient(135deg, #10B981, #059669)',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '0.78rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
+              className="btn btn-primary"
+              style={{ padding: '6px 12px', fontSize: '0.78rem', gap: 5 }}
             >
-              <PlusCircle size={14} />
-              Deploy at [{clickCoords.lat.toFixed(4)}, {clickCoords.lng.toFixed(4)}]
+              <PlusCircle size={13} />
+              Deploy [{clickCoords.lat.toFixed(3)}, {clickCoords.lng.toFixed(3)}]
             </button>
           )}
-
           <button
-            onClick={() => setShowFirmsSatellites(!showFirmsSatellites)}
+            onClick={() => setShowSatellites(v => !v)}
+            className="btn btn-secondary"
             style={{
-              background: showFirmsSatellites ? 'rgba(249, 115, 22, 0.2)' : 'var(--bg-input)',
-              border: `1px solid ${showFirmsSatellites ? '#F97316' : 'var(--bg-card-border)'}`,
-              color: showFirmsSatellites ? '#F97316' : 'var(--text-muted)',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
+              padding: '6px 12px', fontSize: '0.78rem', gap: 5,
+              color: showSatellites ? '#EA580C' : undefined,
+              borderColor: showSatellites ? '#FFEDD5' : undefined,
+              background: showSatellites ? '#FFF7ED' : undefined,
             }}
           >
-            <Satellite size={14} />
-            {showFirmsSatellites ? 'NASA Satellites: ON' : 'NASA Satellites: OFF'}
+            <Satellite size={13} />
+            {showSatellites ? 'FIRMS: ON' : 'FIRMS: OFF'}
           </button>
         </div>
       </div>
 
-      <div style={{ height: '365px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--bg-card-border)', willChange: 'transform' }}>
-        <MapContainer center={center} zoom={14} scrollWheelZoom={false} style={{ height: '100%', width: '100%', background: 'transparent' }}>
-          <ChangeView center={center} />
-          
-          <TileLayer
-            key={theme}
-            subdomains={['a', 'b', 'c', 'd']}
-            maxZoom={19}
-            attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-            url={tileUrl}
-          />
-
+      {/* Map — key forces remount on region switch */}
+      <div style={{ height: 400, position: 'relative' }}>
+        <MapContainer
+          key={mapKey}
+          center={center}
+          zoom={13}
+          scrollWheelZoom={true}
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={true}
+        >
+          <ChangeView center={center} zoom={13} />
           <MapClickHandler onMapClick={handleMapClick} />
 
-          {/* Mesh Lines */}
-          {meshLines.map((line, idx) => (
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+            subdomains={['a', 'b', 'c', 'd']}
+            maxZoom={19}
+          />
+
+          {/* Mesh lines */}
+          {meshLines.map((line, i) => (
             <Polyline
-              key={`mesh-link-${idx}`}
+              key={`mesh-${i}`}
               positions={line}
-              pathOptions={{
-                color: theme === 'light' ? '#3B82F6' : '#0EA5E9',
-                weight: 1.5,
-                opacity: 0.6,
-                dashArray: '5,5'
-              }}
+              pathOptions={{ color: '#3B82F6', weight: 1.5, opacity: 0.5, dashArray: '6,5' }}
             />
           ))}
 
-          {/* IoT Nodes */}
-          {nodes && nodes.map((node) => {
+          {/* IoT Sensor Nodes */}
+          {nodes?.map((node) => {
             const isSelected = node.node_id === selectedNodeId;
             const color = getColor(node.risk_level);
-
             return (
               <CircleMarker
                 key={node.node_id}
                 center={[node.latitude, node.longitude]}
-                radius={isSelected ? 14 : 9}
+                radius={isSelected ? 15 : 9}
                 pathOptions={{
-                  color: color,
+                  color: '#FFFFFF',
                   fillColor: color,
-                  fillOpacity: 0.85,
-                  weight: isSelected ? 4 : 2
+                  fillOpacity: isSelected ? 1 : 0.85,
+                  weight: isSelected ? 3 : 2,
                 }}
-                eventHandlers={{
-                  click: () => onSelectNode(node.node_id)
-                }}
+                eventHandlers={{ click: () => onSelectNode(node.node_id) }}
               >
                 <Popup>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                    <strong style={{ color: 'var(--text-heading)', fontSize: '0.95rem' }}>{node.node_name}</strong> ({node.node_id})<br />
-                    <strong>Status:</strong> <span style={{ color: color, fontWeight: 'bold' }}>{node.risk_label}</span><br />
-                    <strong>Temp:</strong> {node.temperature} °C<br />
-                    <strong>CO:</strong> {node.co_ppm} ppm<br />
-                    <strong>Humidity:</strong> {node.humidity} %<br />
-                    <strong>Battery:</strong> {node.battery_level}%
+                  <div style={{ fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', minWidth: 180 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F1923', marginBottom: 6 }}>
+                      {node.node_name}
+                      <span style={{ fontSize: '0.72rem', color: '#7A8FA6', fontWeight: 500, marginLeft: 6 }}>
+                        {node.node_id}
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center',
+                      padding: '2px 8px', borderRadius: 6,
+                      background: node.risk_level === 2 ? '#FEF2F2' : node.risk_level === 1 ? '#FFFBEB' : '#F0FDF4',
+                      color,
+                      fontSize: '0.75rem', fontWeight: 700, marginBottom: 8,
+                    }}>
+                      {node.risk_label}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: '0.8rem', color: '#3D4F63' }}>
+                      <span>🌡️ {node.temperature} °C</span>
+                      <span>💨 {node.co_ppm} ppm CO</span>
+                      <span>💧 {node.humidity}% RH</span>
+                      <span>🔋 {node.battery_level}%</span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#7A8FA6' }}>
+                      📍 {node.latitude?.toFixed(4)}° N, {node.longitude?.toFixed(4)}° E
+                    </div>
                   </div>
                 </Popup>
               </CircleMarker>
             );
           })}
 
-          {/* NASA Satellites */}
-          {showFirmsSatellites && firmsFires.map((fire, idx) => (
+          {/* NASA FIRMS Satellite Fire Detects */}
+          {showSatellites && firmsFires.map((fire, i) => (
             <CircleMarker
-              key={`sat-${idx}`}
+              key={`fire-${i}`}
               center={[fire.latitude, fire.longitude]}
-              radius={8}
-              pathOptions={{
-                color: '#FF5722',
-                fillColor: '#FF5722',
-                fillOpacity: 0.9,
-                weight: 2,
-                dashArray: '3,3'
-              }}
+              radius={7}
+              pathOptions={{ color: '#FF5722', fillColor: '#FF5722', fillOpacity: 0.8, weight: 1.5 }}
             >
               <Popup>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                  <strong style={{ color: '#FF5722', fontSize: '0.95rem' }}>🛰️ NASA FIRMS Satellite Detect</strong><br />
-                  <strong>Instrument:</strong> {fire.instrument} ({fire.satellite})<br />
-                  <strong>Brightness:</strong> {fire.brightness_kelvin} K<br />
-                  <strong>FRP Power:</strong> {fire.frp_mw} MW
+                <div style={{ fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
+                  <div style={{ fontWeight: 700, color: '#DC2626', marginBottom: 5 }}>
+                    🛰️ NASA FIRMS Detection
+                  </div>
+                  <div style={{ color: '#3D4F63' }}>
+                    <div>Instrument: {fire.instrument} ({fire.satellite})</div>
+                    <div>Brightness: {fire.brightness_kelvin} K</div>
+                    <div>FRP Power: {fire.frp_mw} MW</div>
+                  </div>
                 </div>
               </Popup>
             </CircleMarker>
           ))}
 
-          {/* Click Marker */}
+          {/* Click deployment marker */}
           {clickCoords && (
             <CircleMarker
               center={[clickCoords.lat, clickCoords.lng]}
               radius={10}
-              pathOptions={{
-                color: '#10B981',
-                fillColor: '#10B981',
-                fillOpacity: 0.6,
-                dashArray: '4,4'
-              }}
+              pathOptions={{ color: '#16A34A', fillColor: '#16A34A', fillOpacity: 0.5, dashArray: '4,4', weight: 2 }}
             />
           )}
         </MapContainer>
+
+        {/* Map Legend */}
+        <div style={{
+          position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid #E2E6ED',
+          borderRadius: 8,
+          padding: '7px 11px',
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          display: 'flex', flexDirection: 'column', gap: 4,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}>
+          {[
+            { color: '#DC2626', label: 'Critical' },
+            { color: '#D97706', label: 'Warning' },
+            { color: '#16A34A', label: 'Normal' },
+            { color: '#FF5722', label: 'FIRMS Satellite' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <span style={{ color: '#3D4F63' }}>{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
