@@ -24,11 +24,15 @@ run_agnirakshak.bat
 
 ## 🔥 Key Features
 
+- **🔴 Live Real Public Database Engine**: Connects in real-time to **NASA EONET** (140+ live global wildfire incidents), **Open-Meteo Weather API** (live ambient temperature, humidity, surface pressure, wind), and **Copernicus CAMS** (live Carbon Monoxide and atmospheric particulate levels).
+- **🔌 Browser WebSerial Physical Hardware Ingestion**: Plug an ESP32, Arduino, or Raspberry Pi directly into your PC via USB and stream real live sensor hardware telemetry into AgniRakshak with zero driver installation.
+- **🛰️ NASA EONET Global Wildfire Explorer**: Interactive modal to browse, filter, and teleport tactical maps to any real ongoing wildfire on Earth.
+- **📰 Live Disaster News & Wildfire Alert Ticker**: Dynamic real-time broadcast ticker tracking global satellite alerts and biomass burning bulletins.
 - **🌐 Global Wildfire Region Switcher**: Instant location presets for **Jaipur Forest (India)**, **Sierra Nevada (USA)**, **Amazon Basin (Brazil)**, **NSW Bushlands (Australia)**, and **Attica Forest (Greece)**.
 - **📡 Click-to-Deploy IoT Mesh Nodes**: Click anywhere on the Leaflet map to deploy new sensor outposts at exact GPS coordinates in real-time.
 - **🗑️ Node Decommissioning**: Remove old or damaged IoT outposts directly from the active node panel.
 - **⚡ High-Performance Geospatial Map**: Instant tile loading (<100ms) with CartoDB Voyager raster mirrors and satellite overlays.
-- **🛰️ NASA FIRMS Thermal Satellite Correlation**: Live VIIRS SNPP & MODIS satellite active fire radiometry integration.
+- **🛰️ NASA FIRMS Thermal Satellite Correlation**: Live VIIRS SNPP, NOAA-20 & MODIS satellite active fire radiometry integration with Fire Radiative Power (MW).
 - **🔥 Fire Weather Index (FWI) & Rate of Spread Math**: Real-time Vapor Pressure Deficit ($VPD$), Initial Spread Index ($ISI$), and Rate of Spread ($ROS$ in m/min).
 - **🤖 Gemma 3n 5-Section Crisis Briefings**: Multi-tab executive intelligence reports with bold formatting, telemetry audit grids, numbered tactical action plans, and printable emergency dispatch sheets.
 - **📢 Emergency Alert Broadcast System (`POST /api/alerts/broadcast`)**: Simulated multi-channel emergency alert dispatch (SMS, Telegram, LoRa Radio Mesh).

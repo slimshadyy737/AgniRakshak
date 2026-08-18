@@ -11,9 +11,13 @@ import AIExplanationCard from './components/AIExplanationCard';
 import NodeDetails from './components/NodeDetails';
 import LoadingOverlay from './components/LoadingOverlay';
 import AIReportModal from './components/AIReportModal';
+import LiveWildfireTrackerModal from './components/LiveWildfireTrackerModal';
+import WebSerialSensorModal from './components/WebSerialSensorModal';
+import CustomLocationModal from './components/CustomLocationModal';
+import LiveNewsTicker from './components/LiveNewsTicker';
 import AudioSiren from './components/AudioSiren';
 import FireWeatherWidget from './components/FireWeatherWidget';
-import { AlertCircle, Clock, Keyboard } from 'lucide-react';
+import { AlertCircle, Clock, Keyboard, Radio, Flame, Zap } from 'lucide-react';
 
 export default function App() {
   const [systemStatus, setSystemStatus] = useState(null);
@@ -22,6 +26,10 @@ export default function App() {
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAIReportOpen, setIsAIReportOpen] = useState(false);
+  const [isNASAModalOpen, setIsNASAModalOpen] = useState(false);
+  const [isWebSerialOpen, setIsWebSerialOpen] = useState(false);
+  const [isCustomLocationOpen, setIsCustomLocationOpen] = useState(false);
+  const [customCenter, setCustomCenter] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [activeTab, setActiveTab] = useState('tactical-map');
 
@@ -31,6 +39,9 @@ export default function App() {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       const k = e.key;
       if (k === 'r' || k === 'R') setIsAIReportOpen(v => !v);
+      if (k === 'n' || k === 'N') setIsNASAModalOpen(v => !v);
+      if (k === 'u' || k === 'U') setIsWebSerialOpen(v => !v);
+      if (k === 'l' || k === 'L') setIsCustomLocationOpen(v => !v);
       if (k === 'm' || k === 'M') setIsMuted(v => !v);
       if (k === 'd' || k === 'D') {
         const base = axios.defaults.baseURL || '';
@@ -55,7 +66,7 @@ export default function App() {
       setSystemStatus(statusRes.data);
       setNodes(nodesRes.data);
       setHistoryData(historyRes.data);
-      if (loading) setTimeout(() => setLoading(false), 600);
+      if (loading) setTimeout(() => setLoading(false), 500);
     } catch (err) {
       console.error('Fetch error:', err);
       setLoading(false);
@@ -87,6 +98,11 @@ export default function App() {
     }
   };
 
+  const handleSelectWildfireCoords = (lat, lon, title) => {
+    setCustomCenter([lat, lon]);
+    setActiveTab('tactical-map');
+  };
+
   const focusNode = nodes.find(n => n.node_id === selectedNodeId) || nodes[0];
 
   if (loading) return <LoadingOverlay />;
@@ -101,28 +117,37 @@ export default function App() {
         isMuted={isMuted}
         onToggleMute={() => setIsMuted(v => !v)}
         onOpenAIReport={() => setIsAIReportOpen(true)}
+        onOpenNASA={() => setIsNASAModalOpen(true)}
+        onOpenWebSerial={() => setIsWebSerialOpen(true)}
+        onOpenCustomLocation={() => setIsCustomLocationOpen(true)}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onRegionChanged={fetchData}
+        onRegionChanged={() => {
+          setCustomCenter(null);
+          fetchData();
+        }}
       />
 
       {/* Page Body */}
       <main style={{
         flex: 1,
-        maxWidth: '1480px',
+        maxWidth: '1540px',
         margin: '0 auto',
         width: '100%',
-        padding: '24px',
+        padding: '20px 24px 24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: '16px',
       }}>
+
+        {/* Real-time Emergency Disaster & Wildfire News Ticker */}
+        <LiveNewsTicker />
 
         {/* Critical Alert Banner */}
         {systemStatus?.system_risk_level === 2 && (
           <div className="alert-banner critical">
             <AlertCircle size={20} />
-            <strong>Critical Wildfire Emergency:</strong> High-risk ignition detected on the sensor mesh. Incident response dispatched.
+            <strong>Critical Wildfire Emergency:</strong> High-risk thermal ignition detected on the sensor mesh. Incident response dispatched.
           </div>
         )}
         {systemStatus?.system_risk_level === 1 && (
@@ -147,6 +172,7 @@ export default function App() {
                 selectedNodeId={selectedNodeId}
                 onSelectNode={setSelectedNodeId}
                 onDeployNode={fetchData}
+                customCenter={customCenter}
                 theme="light"
               />
               <NodeDetails node={focusNode} onDecommissionNode={handleDecommissionNode} />
@@ -155,6 +181,8 @@ export default function App() {
             {/* Right column */}
             <RightCommandPanel
               selectedNodeId={selectedNodeId}
+              focusNode={focusNode}
+              nodes={nodes}
               currentScenario={systemStatus?.current_scenario || 'NORMAL'}
               onSelectScenario={handleSelectScenario}
               onStepSimulation={handleStepSimulation}
@@ -167,6 +195,18 @@ export default function App() {
         {/* ── TAB 2: SENSOR NETWORK ── */}
         {activeTab === 'sensor-network' && (
           <div className="tab-view-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+                Distributed Multi-Sensor Mesh Outposts
+              </h3>
+              <button
+                onClick={() => setIsWebSerialOpen(true)}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.84rem', gap: 6 }}
+              >
+                <Zap size={14} /> Connect Physical USB Device
+              </button>
+            </div>
             <ActiveSensorStream
               nodes={nodes}
               selectedNodeId={selectedNodeId}
@@ -195,6 +235,18 @@ export default function App() {
         {/* ── TAB 4: AI INTELLIGENCE ── */}
         {activeTab === 'ai-intelligence' && (
           <div className="tab-view-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+                Google Gemma 3n AI Incident Reasoning Engine
+              </h3>
+              <button
+                onClick={() => setIsAIReportOpen(true)}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.84rem' }}
+              >
+                Generate 5-Section Full Briefing
+              </button>
+            </div>
             <AIExplanationCard focusNode={focusNode} />
           </div>
         )}
@@ -237,7 +289,7 @@ export default function App() {
         {/* Shortcuts */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Keyboard size={12} color="#EA580C" />
-          {[['R', 'AI Report'], ['M', 'Mute'], ['D', 'Dispatch'], ['1-4', 'Tabs']].map(([key, label]) => (
+          {[['R', 'AI Report'], ['N', 'NASA Fires'], ['U', 'USB Sensor'], ['L', 'Location Jump'], ['M', 'Mute'], ['D', 'Dispatch'], ['1-4', 'Tabs']].map(([key, label]) => (
             <span key={key} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="kbd">{key}</span>
               <span style={{ color: '#B0BFCF' }}>{label}</span>
@@ -252,10 +304,35 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Gemma AI Report Modal */}
       <AIReportModal
         isOpen={isAIReportOpen}
         onClose={() => setIsAIReportOpen(false)}
         selectedNode={focusNode}
+      />
+
+      {/* NASA EONET Live Wildfire Database Modal */}
+      <LiveWildfireTrackerModal
+        isOpen={isNASAModalOpen}
+        onClose={() => setIsNASAModalOpen(false)}
+        onSelectCoordinates={handleSelectWildfireCoords}
+      />
+
+      {/* WebSerial & Physical Hardware Sensor Ingestion Modal */}
+      <WebSerialSensorModal
+        isOpen={isWebSerialOpen}
+        onClose={() => setIsWebSerialOpen(false)}
+        onSensorIngested={fetchData}
+      />
+
+      {/* Custom Location / Global City Model Modal */}
+      <CustomLocationModal
+        isOpen={isCustomLocationOpen}
+        onClose={() => setIsCustomLocationOpen(false)}
+        onLocationSet={() => {
+          setCustomCenter(null);
+          fetchData();
+        }}
       />
     </div>
   );

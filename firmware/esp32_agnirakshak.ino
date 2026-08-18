@@ -40,7 +40,7 @@
 // --- NETWORK & DEPLOYMENT CONFIGURATION ---
 const char* WIFI_SSID     = "AgniRakshak_Mesh";
 const char* WIFI_PASS     = "WildfireProtection2026";
-const char* SERVER_ENDPOINT = "http://192.168.1.100:8501/api/telemetry";
+const char* SERVER_ENDPOINT = "http://192.168.1.100:8000/api/sensor/telemetry";
 const char* NODE_ID         = "NODE-01-MUJ";
 
 // --- GLOBAL OBJECTS & STRUCTS ---

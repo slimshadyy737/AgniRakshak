@@ -11,9 +11,16 @@ from typing import Dict, List, Any
 REGIONS = {
     "JAIPUR": {
         "id": "JAIPUR",
-        "name": "Jaipur Ridge Forest Reserve, India",
+        "name": "Manipal University Jaipur (MUJ) & Dehmi Ridge, India",
         "lat": 26.8430,
         "lon": 75.5655,
+        "flag": "🇮🇳"
+    },
+    "NAHARGARH": {
+        "id": "NAHARGARH",
+        "name": "Nahargarh & Jaigarh Forest Sanctuary, Jaipur, India",
+        "lat": 26.9385,
+        "lon": 75.8155,
         "flag": "🇮🇳"
     },
     "CALIFORNIA": {
@@ -55,10 +62,16 @@ NODES = [
 
 REGIONAL_NAMES = {
     "JAIPUR": {
-        "NODE-01": "Nahargarh Fort Ridge",
+        "NODE-01": "MUJ Academic Block & Forest Outpost",
+        "NODE-02": "Dehmi Kalan East Ridge Slope",
+        "NODE-03": "Sports Complex & Canopy Watch",
+        "NODE-04": "West Hostel Forest Boundary"
+    },
+    "NAHARGARH": {
+        "NODE-01": "Nahargarh Fort Ridge Outpost",
         "NODE-02": "Jaigarh Pine Slopes",
-        "NODE-03": "Amer Reserve Canopy",
-        "NODE-04": "Jhalana Forest Sector"
+        "NODE-03": "Amer Reserve Canopy Station",
+        "NODE-04": "Jhalana Leopard Forest Sector"
     },
     "CALIFORNIA": {
         "NODE-01": "Yosemite Valley Station",
@@ -144,21 +157,20 @@ class TelemetrySimulator:
             base_temp, base_hum, base_co, base_smoke, wind_kmh, wind_deg, battery = 25.0, 55.0, 4.0, 300.0, 12.0, 90, 95.0
 
         node_name_base = REGIONAL_NAMES.get(self.active_region, {}).get(node_id, node_info.get("name", f"Sector {node_id}"))
-        node_name = f"{region['flag']} {node_name_base}"
 
         return {
             "node_id": node_info["id"],
-            "node_name": node_name,
-            "latitude": round(base_lat + random.uniform(-0.0001, 0.0001), 5),
-            "longitude": round(base_lon + random.uniform(-0.0001, 0.0001), 5),
+            "node_name": node_name_base,
+            "latitude": round(base_lat, 5),
+            "longitude": round(base_lon, 5),
             "altitude": node_info["altitude"],
-            "temperature": round(float(base_temp), 2),
-            "humidity": round(float(base_hum), 2),
-            "co_ppm": round(float(base_co), 2),
-            "smoke_raw": round(float(base_smoke), 1),
-            "wind_speed_kmh": round(float(wind_kmh), 1),
+            "temperature": round(base_temp, 2),
+            "humidity": round(base_hum, 2),
+            "co_ppm": round(base_co, 2),
+            "smoke_raw": round(base_smoke, 1),
+            "wind_speed_kmh": round(wind_kmh, 1),
             "wind_direction_deg": int(wind_deg),
-            "battery_level": round(float(battery), 1),
-            "rssi_dbm": random.randint(-75, -55),
+            "battery_level": round(battery, 1),
+            "rssi_dbm": random.randint(-68, -48),
             "timestamp": time.strftime("%H:%M:%S")
         }

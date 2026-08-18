@@ -1,8 +1,9 @@
 import React from 'react';
-import { Thermometer, Wind, Activity, Cpu } from 'lucide-react';
+import { Thermometer, Wind, Activity, Cpu, Radio, Droplets } from 'lucide-react';
 
 export default function MetricsRow({ systemStatus, focusNode }) {
   const riskLevel = systemStatus?.system_risk_level || 0;
+  const isLive = systemStatus?.is_live_data ?? true;
 
   const risk = riskLevel === 2
     ? { label: 'Critical Fire Risk', badgeClass: 'badge badge-critical', valueColor: '#B91C1C' }
@@ -20,10 +21,16 @@ export default function MetricsRow({ systemStatus, focusNode }) {
       value: systemStatus?.system_risk_label || 'NORMAL',
       valueColor: risk.valueColor,
       badge: <span className={risk.badgeClass}>{risk.label}</span>,
-      sub: <>Scenario: <strong>{systemStatus?.current_scenario || 'NORMAL'}</strong></>,
+      sub: isLive ? (
+        <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Radio size={11} className="animate-pulse" /> <strong>LIVE DATA STREAM</strong>
+        </span>
+      ) : (
+        <>Scenario: <strong>{systemStatus?.current_scenario || 'NORMAL'}</strong></>
+      ),
     },
     {
-      label: 'Temperature & Rate',
+      label: 'Ambient Temp & Rate',
       icon: <Thermometer size={18} color="#EA580C" />,
       value: focusNode?.temperature != null ? `${focusNode.temperature} °C` : '— °C',
       valueColor: '#0F1923',
@@ -33,10 +40,10 @@ export default function MetricsRow({ systemStatus, focusNode }) {
           {dT >= 0 ? '+' : ''}{dT.toFixed(2)} °C/min
         </span>
       ),
-      sub: <>Node: <strong>{focusNode?.node_name || 'NODE-01'}</strong></>,
+      sub: <>Node: <strong>{focusNode?.node_name || 'NODE-01'}</strong> ({isLive ? 'Open-Meteo' : 'Sim'})</>,
     },
     {
-      label: 'Carbon Monoxide (CO)',
+      label: 'Atmospheric CO & Smoke',
       icon: <Wind size={18} color="#B45309" />,
       value: focusNode?.co_ppm != null ? `${focusNode.co_ppm} ppm` : '— ppm',
       valueColor: '#0F1923',
@@ -46,17 +53,17 @@ export default function MetricsRow({ systemStatus, focusNode }) {
           {dCO >= 0 ? '+' : ''}{dCO.toFixed(2)} ppm/min
         </span>
       ),
-      sub: <>Smoke ADC: <strong>{focusNode?.smoke_raw || '—'}</strong></>,
+      sub: <>Copernicus CAMS: <strong>{focusNode?.smoke_raw || '—'} eq ADC</strong></>,
     },
     {
-      label: 'AI Confidence Score',
+      label: 'AI & Physics Engine',
       icon: <Cpu size={18} color="#0369A1" />,
       value: focusNode?.confidence != null
         ? `${(focusNode.confidence * 100).toFixed(1)}%`
         : '100.0%',
       valueColor: '#0369A1',
-      badge: <span className="badge" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '0.72rem' }}>RANDOM FOREST</span>,
-      sub: <>Classifier: <strong>RF + Derivative Rules</strong></>,
+      badge: <span className="badge" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '0.72rem' }}>RANDOM FOREST + FWI</span>,
+      sub: <>VPD: <strong>{focusNode?.fwi_analytics?.vpd_kpa || '1.8'} kPa</strong> · ROS: <strong>{focusNode?.fwi_analytics?.rate_of_spread_m_min || '0.2'} m/m</strong></>,
     },
   ];
 
