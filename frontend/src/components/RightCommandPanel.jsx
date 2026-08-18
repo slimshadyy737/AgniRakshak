@@ -1,8 +1,6 @@
-import React from 'react';
-import axios from 'axios';
 import {
   AlertCircle, Radio, CheckCircle, ShieldAlert, Zap, Globe, Cpu,
-  Thermometer, Droplets, Wind, Flame, Activity, Satellite
+  Thermometer, Droplets, Wind, Flame, Activity, Satellite, Building2, Lock
 } from 'lucide-react';
 import ScenarioControls from './ScenarioControls';
 
@@ -14,6 +12,9 @@ export default function RightCommandPanel({
   onSelectScenario,
   onStepSimulation,
   onTelemetryInjected,
+  onOpenSmartCityAuth,
+  isSmartCityUnlocked,
+  onSelectTab,
   systemStatus,
 }) {
   const isCritical = systemStatus?.system_risk_level === 2;
@@ -248,6 +249,94 @@ export default function RightCommandPanel({
           <Radio size={16} />
           Initiate Emergency Broadcast
         </button>
+
+        {/* Smart City ICCC Button (Restricted to MUJ Sector) */}
+        {(() => {
+          const isMUJ = (systemStatus?.active_region?.id || 'JAIPUR') === 'JAIPUR';
+          if (!isMUJ) {
+            return (
+              <div style={{
+                marginTop: 10, padding: '8px 10px', background: '#F8FAFC',
+                borderRadius: 8, border: '1px solid #E2E8F0',
+                fontSize: '0.72rem', color: '#64748B', textAlign: 'center', lineHeight: 1.4
+              }}>
+                Smart City ICCC is restricted to Manipal University Jaipur (MUJ) Sector.
+              </div>
+            );
+          }
+
+          if (isSmartCityUnlocked) {
+            return (
+              <button
+                onClick={() => onSelectTab?.('smart-city')}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #2563EB 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: 10,
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 3px 12px rgba(37,99,235,0.3)',
+                  textTransform: 'uppercase',
+                  fontFamily: 'inherit',
+                  marginTop: 10,
+                  transition: 'all 0.2s ease'
+                }}
+                title="Open Smart City Integrated Command & Control Center (Beta v5.03 B)"
+              >
+                <Building2 size={16} />
+                Open Smart City ICCC (v5.03 B)
+              </button>
+            );
+          }
+
+          return (
+            <button
+              type="button"
+              id="unlock-smartcity-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof onOpenSmartCityAuth === 'function') {
+                  onOpenSmartCityAuth();
+                }
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                color: '#FFFFFF',
+                border: '1px solid #334155',
+                padding: '12px',
+                borderRadius: 10,
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                textTransform: 'uppercase',
+                fontFamily: 'inherit',
+                marginTop: 10,
+                transition: 'all 0.2s ease',
+                pointerEvents: 'auto',
+                userSelect: 'none'
+              }}
+              title="Unlock Smart City ICCC (Password Required)"
+            >
+              <Lock size={15} color="#38BDF8" />
+              Unlock Smart City ICCC (v5.03 B)
+            </button>
+          );
+        })()}
       </div>
     </div>
   );

@@ -1,3 +1,11 @@
+/**
+ * ============================================================================
+ * AGNI-RAKSHAK: Autonomous Wildfire Early Warning & Physics-Informed GIS
+ * Architected & Engineered by SynthReaper
+ * All Rights Reserved © 2026 SynthReaper / AgniRakshak Intelligence
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from './components/Header';
@@ -17,7 +25,9 @@ import CustomLocationModal from './components/CustomLocationModal';
 import LiveNewsTicker from './components/LiveNewsTicker';
 import AudioSiren from './components/AudioSiren';
 import FireWeatherWidget from './components/FireWeatherWidget';
-import { AlertCircle, Clock, Keyboard, Radio, Flame, Zap } from 'lucide-react';
+import SmartCityICCCView from './components/SmartCityICCCView';
+import SmartCityAuthModal from './components/SmartCityAuthModal';
+import { AlertCircle, Clock, Keyboard, Radio, Flame, Zap, Building2, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [systemStatus, setSystemStatus] = useState(null);
@@ -29,9 +39,33 @@ export default function App() {
   const [isNASAModalOpen, setIsNASAModalOpen] = useState(false);
   const [isWebSerialOpen, setIsWebSerialOpen] = useState(false);
   const [isCustomLocationOpen, setIsCustomLocationOpen] = useState(false);
+  const [isSmartCityAuthOpen, setIsSmartCityAuthOpen] = useState(false);
+  const [isSmartCityUnlocked, setIsSmartCityUnlocked] = useState(() => {
+    try {
+      return localStorage.getItem('agnirakshak_smartcity_unlocked') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [customCenter, setCustomCenter] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [activeTab, setActiveTab] = useState('tactical-map');
+
+  const handleSmartCityAuthSuccess = (data) => {
+    setIsSmartCityUnlocked(true);
+    try {
+      localStorage.setItem('agnirakshak_smartcity_unlocked', 'true');
+    } catch {}
+    setActiveTab('smart-city');
+  };
+
+  const handleLockSmartCity = () => {
+    setIsSmartCityUnlocked(false);
+    try {
+      localStorage.removeItem('agnirakshak_smartcity_unlocked');
+    } catch {}
+    setActiveTab('tactical-map');
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -42,6 +76,13 @@ export default function App() {
       if (k === 'n' || k === 'N') setIsNASAModalOpen(v => !v);
       if (k === 'u' || k === 'U') setIsWebSerialOpen(v => !v);
       if (k === 'l' || k === 'L') setIsCustomLocationOpen(v => !v);
+      if (k === 'c' || k === 'C') {
+        if (isSmartCityUnlocked) {
+          setActiveTab('smart-city');
+        } else {
+          setIsSmartCityAuthOpen(true);
+        }
+      }
       if (k === 'm' || k === 'M') setIsMuted(v => !v);
       if (k === 'd' || k === 'D') {
         const base = axios.defaults.baseURL || '';
@@ -51,6 +92,7 @@ export default function App() {
       if (k === '2') setActiveTab('sensor-network');
       if (k === '3') setActiveTab('analytics');
       if (k === '4') setActiveTab('ai-intelligence');
+      if (k === '5') setActiveTab('smart-city');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -120,6 +162,7 @@ export default function App() {
         onOpenNASA={() => setIsNASAModalOpen(true)}
         onOpenWebSerial={() => setIsWebSerialOpen(true)}
         onOpenCustomLocation={() => setIsCustomLocationOpen(true)}
+        isSmartCityUnlocked={isSmartCityUnlocked}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onRegionChanged={() => {
@@ -141,7 +184,7 @@ export default function App() {
       }}>
 
         {/* Real-time Emergency Disaster & Wildfire News Ticker */}
-        <LiveNewsTicker />
+        <LiveNewsTicker systemStatus={systemStatus} />
 
         {/* Critical Alert Banner */}
         {systemStatus?.system_risk_level === 2 && (
@@ -187,6 +230,9 @@ export default function App() {
               onSelectScenario={handleSelectScenario}
               onStepSimulation={handleStepSimulation}
               onTelemetryInjected={fetchData}
+              onOpenSmartCityAuth={() => setIsSmartCityAuthOpen(true)}
+              isSmartCityUnlocked={isSmartCityUnlocked}
+              onSelectTab={setActiveTab}
               systemStatus={systemStatus}
             />
           </div>
@@ -250,6 +296,13 @@ export default function App() {
             <AIExplanationCard focusNode={focusNode} />
           </div>
         )}
+
+        {/* ── TAB 5: SMART CITY ICCC (BETA v5.03 B) ── */}
+        {activeTab === 'smart-city' && (
+          <div className="tab-view-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <SmartCityICCCView systemStatus={systemStatus} onLockConsole={handleLockSmartCity} />
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -286,10 +339,27 @@ export default function App() {
           </span>
         </div>
 
+        {/* Watermark Branding */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: '#FFF7ED',
+          border: '1px solid #FFEDD5',
+          borderRadius: 6,
+          padding: '2px 8px',
+          color: '#EA580C',
+          fontWeight: 700,
+          fontSize: '0.72rem'
+        }}>
+          <Sparkles size={11} color="#EA580C" />
+          <span>Made with ❤️ by <strong>SynthReaper</strong></span>
+        </div>
+
         {/* Shortcuts */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Keyboard size={12} color="#EA580C" />
-          {[['R', 'AI Report'], ['N', 'NASA Fires'], ['U', 'USB Sensor'], ['L', 'Location Jump'], ['M', 'Mute'], ['D', 'Dispatch'], ['1-4', 'Tabs']].map(([key, label]) => (
+          {[['R', 'AI Report'], ['N', 'NASA Fires'], ['U', 'USB Sensor'], ['L', 'Location Jump'], ['M', 'Mute'], ['D', 'Dispatch'], ['1-5', 'Tabs']].map(([key, label]) => (
             <span key={key} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="kbd">{key}</span>
               <span style={{ color: '#B0BFCF' }}>{label}</span>
@@ -333,6 +403,13 @@ export default function App() {
           setCustomCenter(null);
           fetchData();
         }}
+      />
+
+      {/* Smart City ICCC Authentication Gateway Modal */}
+      <SmartCityAuthModal
+        isOpen={isSmartCityAuthOpen}
+        onClose={() => setIsSmartCityAuthOpen(false)}
+        onAuthenticated={handleSmartCityAuthSuccess}
       />
     </div>
   );

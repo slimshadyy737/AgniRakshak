@@ -1,9 +1,17 @@
+/**
+ * ============================================================================
+ * AGNI-RAKSHAK: Autonomous Wildfire Early Warning & Physics-Informed GIS
+ * Architected, Designed & Engineered by SynthReaper
+ * All Rights Reserved © 2026 SynthReaper
+ * ============================================================================
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
   Flame, FileText, Sparkles, Volume2, VolumeX,
   ShieldCheck, AlertTriangle, Map, Wifi, BarChart3, Cpu, Globe, Download,
-  Radio, Zap, ChevronDown, Plus, Navigation
+  Radio, Zap, ChevronDown, Plus, Navigation, Building2, Lock
 } from 'lucide-react';
 
 export default function Header({
@@ -12,6 +20,7 @@ export default function Header({
   onOpenNASA,
   onOpenWebSerial,
   onOpenCustomLocation,
+  isSmartCityUnlocked,
   isMuted,
   onToggleMute,
   activeTab,
@@ -25,29 +34,31 @@ export default function Header({
 
   const RISK = {
     2: { label: 'Critical Fire Alert', dotColor: '#DC2626', bg: '#FEF2F2', border: '#FECACA', text: '#B91C1C' },
-    1: { label: 'Elevated Risk',       dotColor: '#D97706', bg: '#FFFBEB', border: '#FDE68A', text: '#92400E' },
-    0: { label: 'System Normal',       dotColor: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D' },
+    1: { label: 'Elevated Risk', dotColor: '#D97706', bg: '#FFFBEB', border: '#FDE68A', text: '#92400E' },
+    0: { label: 'System Normal', dotColor: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0', text: '#15803D' },
   };
   const risk = RISK[riskLevel] ?? RISK[0];
 
   const regions = [
-    { key: 'JAIPUR',     label: 'Manipal Univ Jaipur (MUJ) & Dehmi', code: 'IN' },
-    { key: 'NAHARGARH',  label: 'Nahargarh & Jaigarh Forest',         code: 'IN' },
-    { key: 'CALIFORNIA', label: 'Sierra Nevada, California',          code: 'US' },
-    { key: 'AMAZON',     label: 'Amazon Basin, Brazil',               code: 'BR' },
-    { key: 'AUSTRALIA',  label: 'NSW Bushlands, Australia',           code: 'AU' },
-    { key: 'GREECE',     label: 'Attica Forest, Greece',              code: 'GR' },
-  ];
-
-  const tabs = [
-    { id: 'tactical-map',    label: 'Tactical Map',    icon: <Map       size={14} /> },
-    { id: 'sensor-network',  label: 'Sensor Network',  icon: <Wifi      size={14} /> },
-    { id: 'analytics',       label: 'Analytics',       icon: <BarChart3 size={14} /> },
-    { id: 'ai-intelligence', label: 'AI Intelligence', icon: <Cpu       size={14} /> },
+    { key: 'JAIPUR', label: 'Manipal Univ Jaipur (MUJ) & Dehmi', code: 'IN' },
+    { key: 'NAHARGARH', label: 'Nahargarh & Jaigarh Forest', code: 'IN' },
+    { key: 'CALIFORNIA', label: 'Sierra Nevada, California', code: 'US' },
+    { key: 'AMAZON', label: 'Amazon Basin, Brazil', code: 'BR' },
+    { key: 'AUSTRALIA', label: 'NSW Bushlands, Australia', code: 'AU' },
+    { key: 'GREECE', label: 'Attica Forest, Greece', code: 'GR' },
   ];
 
   const currentRegionKey = systemStatus?.active_region?.id || 'JAIPUR';
-  const currentRegionName = systemStatus?.active_region?.name || 'Jaipur Ridge, India';
+  const currentRegionName = systemStatus?.active_region?.name || 'Manipal Univ Jaipur (MUJ) & Dehmi';
+  const isMUJ = currentRegionKey === 'JAIPUR';
+
+  const tabs = [
+    { id: 'tactical-map', label: 'Tactical Map', icon: <Map size={14} /> },
+    { id: 'sensor-network', label: 'Sensor Network', icon: <Wifi size={14} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={14} /> },
+    { id: 'ai-intelligence', label: 'AI Intelligence', icon: <Cpu size={14} /> },
+    ...(isSmartCityUnlocked && isMUJ ? [{ id: 'smart-city', label: 'Smart City ICCC (v5.03 B)', icon: <Building2 size={14} /> }] : [])
+  ];
 
   // Close dropdown on click outside
   useEffect(() => {

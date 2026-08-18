@@ -1,9 +1,12 @@
 """
-AgniRakshak Python FastAPI Backend Server
-Integrated with Real Public Databases (NASA EONET, Open-Meteo, Copernicus CAMS),
-Live Physical Sensor Ingestion (ESP32/Arduino REST & WebSerial),
-Global Wildfire Region Switcher, Custom Location & City World Model, Dynamic Node Deployment,
-CSV Export, WebSockets, NASA FIRMS, and High-Quality HTML Dispatch Sheets.
+================================================================================
+AGNI-RAKSHAK: Autonomous Wildfire Early Warning & Physics-Informed GIS
+Architected, Designed & Engineered by SynthReaper
+All Rights Reserved © 2026 SynthReaper / AgniRakshak AI Systems
+================================================================================
+FastAPI Backend Server integrated with Real Public Databases (NASA EONET, Open-Meteo,
+Copernicus CAMS), Live Physical Sensor Hardware (ESP32/Arduino REST & WebSerial),
+Global Region GIS Modeling, and Smart City ICCC (v5.03 B).
 """
 
 import os
@@ -263,10 +266,11 @@ def get_live_wildfires(limit: int = 30):
     return {"status": "success", "source": "NASA EONET", "count": len(fires), "wildfires": fires}
 
 @app.get("/api/live/disaster-news")
-def get_live_disaster_news():
-    """Fetches real-time emergency disaster & wildfire news bulletins."""
-    news = RealDataService.get_disaster_news()
-    return {"status": "success", "count": len(news), "news": news}
+def get_live_disaster_news(mode: str = "GLOBAL", region: str = None):
+    """Fetches real-time emergency disaster & wildfire news bulletins (supports GLOBAL or LOCAL)."""
+    active_reg = region or state.get("active_region", "JAIPUR")
+    news = RealDataService.get_disaster_news(mode=mode, region_id=active_reg)
+    return {"status": "success", "mode": mode, "region": active_reg, "count": len(news), "news": news}
 
 # --- PHYSICAL SENSOR HARDWARE INGESTION ENDPOINT ---
 
@@ -974,6 +978,7 @@ def export_incident_html():
             </div>
             <div class="stamp-box">
                 AGNIRAKSHAK AI DISPATCH<br>
+                ENGINEERED BY: <strong>SYNTHREAPER</strong><br>
                 SECURITY HASH: <strong>{hex(abs(hash(incident_id)))[:10].upper()}</strong><br>
                 NASA FIRMS & COPERNICUS SYNCED
             </div>
@@ -1107,6 +1112,126 @@ def update_wind_vector(payload: WindVectorPayload):
         
     return {"status": "wind_vector_updated", "wind_speed_kmh": payload.wind_speed_kmh, "wind_direction_deg": payload.wind_direction_deg}
 
+from backend.smart_city_service import smart_city
+
+class SmartCityAuthPayload(BaseModel):
+    passcode: str
+
+class CorridorTogglePayload(BaseModel):
+    corridor_id: str
+
+class ScadaTogglePayload(BaseModel):
+    feeder_id: str
+
+class WaterBoostPayload(BaseModel):
+    hydrant_id: str
+    boost: Optional[bool] = True
+
+class BmsTogglePayload(BaseModel):
+    building_id: str
+
+class VmsUpdatePayload(BaseModel):
+    sign_id: str
+    message: str
+
+class CadCreatePayload(BaseModel):
+    sector: str
+    nature: str
+    priority: str = "P1_URGENT"
+    units: List[str] = ["Engine-04", "Tender-08", "Drone-01"]
+
+class EvacSmsPayload(BaseModel):
+    zone_id: str
+
+class TurretTogglePayload(BaseModel):
+    cannon_id: str
+    fire: bool = True
+
+class CctvSlewPayload(BaseModel):
+    camera_id: str
+    pan: float = 142.5
+    tilt: float = -12.0
+    zoom: str = "8x Optical"
+
+class SirenTriggerPayload(BaseModel):
+    siren_id: str
+    state: str = "ACTIVE_EVAC_WARBLE"
+
+@app.post("/api/smartcity/auth")
+def smartcity_auth(payload: SmartCityAuthPayload):
+    # Accept standard keys or quick developer passcode
+    valid_keys = ["agnirakshak2026", "smartcity", "admin", "beta", "muj2026", "v5.03"]
+    if payload.passcode.strip().lower() in valid_keys or payload.passcode.strip() == "1234":
+        return {"authenticated": True, "access_tier": "ICCC_DIRECTOR", "version": "v5.03 B"}
+    return {"authenticated": False, "error": "Invalid Command Access Key"}
+
+@app.get("/api/smartcity/status")
+def get_smartcity_status():
+    return smart_city.get_status()
+
+@app.post("/api/smartcity/traffic/toggle")
+def toggle_traffic_corridor(payload: CorridorTogglePayload):
+    return smart_city.toggle_corridor(payload.corridor_id)
+
+@app.post("/api/smartcity/scada/toggle-breaker")
+def toggle_scada_breaker(payload: ScadaTogglePayload):
+    return smart_city.toggle_scada_breaker(payload.feeder_id)
+
+@app.post("/api/smartcity/water/boost-pressure")
+def boost_water_pressure(payload: WaterBoostPayload):
+    return smart_city.boost_water_hydrant(payload.hydrant_id, payload.boost)
+
+@app.post("/api/smartcity/bms/toggle-seal")
+def toggle_bms_seal(payload: BmsTogglePayload):
+    return smart_city.toggle_bms_damper(payload.building_id)
+
+@app.post("/api/smartcity/drone/launch")
+def launch_smartcity_drone():
+    return smart_city.launch_drone()
+
+@app.post("/api/smartcity/drone/return")
+def return_smartcity_drone():
+    return smart_city.return_drone()
+
+@app.post("/api/smartcity/vms/update")
+def update_vms_sign(payload: VmsUpdatePayload):
+    return smart_city.update_vms_sign(payload.sign_id, payload.message)
+
+@app.post("/api/smartcity/evac/trigger-sms")
+def trigger_evac_sms(payload: EvacSmsPayload):
+    return smart_city.trigger_evacuation_sms(payload.zone_id)
+
+@app.post("/api/smartcity/turret/toggle")
+def toggle_robotic_turret(payload: TurretTogglePayload):
+    return smart_city.toggle_robotic_cannon(payload.cannon_id, payload.fire)
+
+@app.post("/api/smartcity/cctv/slew")
+def slew_cctv_camera(payload: CctvSlewPayload):
+    return smart_city.ptz_slew_to_cue(payload.camera_id, payload.pan, payload.tilt, payload.zoom)
+
+@app.post("/api/smartcity/bess/toggle-island")
+def toggle_bess_microgrid():
+    return smart_city.toggle_bess_island()
+
+@app.post("/api/smartcity/siren/trigger")
+def trigger_warning_siren(payload: SirenTriggerPayload):
+    return smart_city.trigger_warning_siren(payload.siren_id, payload.state)
+
+@app.post("/api/smartcity/cad/create")
+def create_cad_dispatch(payload: CadCreatePayload):
+    return smart_city.create_cad_ticket(payload.sector, payload.nature, payload.priority, payload.units)
+
+@app.get("/api/alerts/cap-xml")
+def export_cap_xml():
+    region = REGIONS.get(state["active_region"], REGIONS["JAIPUR"])
+    xml_content = smart_city.generate_cap_xml(
+        incident_title=f"Wildfire Threat Alert - {region['name']}",
+        severity="Severe" if state["system_risk_level"] == 2 else "Moderate",
+        lat=region["lat"],
+        lon=region["lon"]
+    )
+    return Response(content=xml_content, media_type="application/xml")
+
 @app.websocket("/ws/telemetry")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -1127,3 +1252,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False)
+
